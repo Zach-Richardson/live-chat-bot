@@ -201,67 +201,60 @@ div [class*="pull right"] {
                 <sui-table-row
                     class="left aligned"
                     v-if="question.type=='Free Response'">
-                    <sui-table-cell>
-                        <p>
-                            The user's response will be saved and the user will be prompted with the next question.
-                        </p>
-                    </sui-table-cell>  
                 </sui-table-row>
-
- 
                 <sui-table-row
                     v-if="question.type=='Free Response'">
- 
+
                     <!-- response action edit -->
                     <sui-table-cell collapsing>
                         <sui-icon
                             class="item link"
                             name="arrow right"
                             size="medium"
-                            vertical-align="left" />
+                            vertical-align="middle" />
                         <sui-dropdown      
                             selection
                             placeholder="Response Action"
                             :options="questionActions"
-                            v-model="response.action"
+                            v-model="question.responses[0].action"
                             @input="checkForChanges()"
                             v-if="question.editing" />
                         <p
                             style="display:inline"
-                            v-text="response.action"
+                            v-text="question.responses[0].action"
                             v-else />
                     </sui-table-cell>
                     <sui-table-cell>
-                        <div v-if="response.action=='Forward to Question'">
+                        <div v-if="question.responses[0].action=='Forward to Question'">
                             <sui-dropdown   
                                 selection
                                 placeholder="Question"
                                 :options="questionsForDropdown"
-                                v-model="response.actionOption"
+                                v-model="question.responses[0].actionOption"
                                 @input="checkForChanges()"
                                 v-if="question.editing" />
                             <p
                                 style="display:inline"
-                                v-text="response.actionOption"
+                                v-text="question.responses[0].actionOption"
                                 v-else />
                             <sui-icon
                                 name="circle"
                                 size="small"
                                 style="margin-left:5px"
-                                :color="colorFromResponse(response)"
+                                :color="colorFromResponse(question.responses[0])"
                                 vertical-align="middle" />
                         </div>
-                        <div v-if="response.action=='Forward to Tag'">
+                        <div v-if="question.responses[0].action=='Forward to Tag'">
                             <sui-dropdown      
                                 selection
                                 placeholder="Tag"
                                 :options="tagsForDropdown"
-                                v-model="response.tagId"
-                                @input="updateTagData(response)"
+                                v-model="question.responses[0].tagId"
+                                @input="updateTagData(question.responses[0])"
                                 v-if="question.editing" />
                             <p
                                 style="display:inline"
-                                v-text="response.actionOption"
+                                v-text="question.responses[0].actionOption"
                                 v-else />
                         </div>
                     </sui-table-cell>
