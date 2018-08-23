@@ -480,7 +480,7 @@ class ForstaBot {
                 adminIds.push(uid);
                 await relay.storage.set('authentication', 'adminIds', adminIds);
             }
-            await this.broadcastNotice({note: `ADDED <<${uid}>> to authorize users`, actorUserId});
+            await this.broadcastNotice({note: `ADDED <<${uid}>> to authorized users`, actorUserId});
             return this.getAdministrators();
         }
         throw { statusCode: 400, info: { tag: ['not a recognized tag, please try again'] } }; 
