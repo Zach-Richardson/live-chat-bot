@@ -456,7 +456,7 @@ class ForstaBot {
 
         let fullMessage = note;
         fullMessage += actorUserId ? `\n\nPerformed by ${actorLabel}` : '';
-        fullMessage += listAll ? `\n\nCurrent authorize users:\n${adminList}` : '';
+        fullMessage += listAll ? `\n\nCurrent authorized users:\n${adminList}` : '';
         fullMessage = fullMessage.replace(/<<([^>]*)>>/g, (_, id) => {
             const user = adminUsers.find(x => x.id === id);
             return this.fqLabel(user);
@@ -480,7 +480,7 @@ class ForstaBot {
                 adminIds.push(uid);
                 await relay.storage.set('authentication', 'adminIds', adminIds);
             }
-            await this.broadcastNotice({note: `ADDED <<${uid}>> to authorized users`, actorUserId});
+            await this.broadcastNotice({note: `ADDED <<${uid}>> to authorize users`, actorUserId});
             return this.getAdministrators();
         }
         throw { statusCode: 400, info: { tag: ['not a recognized tag, please try again'] } }; 
