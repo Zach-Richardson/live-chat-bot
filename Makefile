@@ -75,3 +75,4 @@ forcerun:
 watchrun:
 	node server
 	$(NPATH)/grunt watch
+	
