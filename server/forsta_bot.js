@@ -464,7 +464,7 @@ class ForstaBot {
 
         this.msgSender.send({
             distribution,
-            threadTitle: 'Compliance Alerts',
+            threadTitle: 'Live Chat Alerts',
             threadId: await this.getSoloAuthThreadId(),
             text: fullMessage
         });
