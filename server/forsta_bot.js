@@ -5,7 +5,6 @@ const cache = require('./cache');
 const relay = require('librelay');
 const uuid4 = require('uuid/v4');
 const moment = require('moment');
-const PGStore = require("./pgstore");
 const words = require("./authwords");
 
 const AUTH_FAIL_THRESHOLD = 10;
@@ -18,8 +17,6 @@ class ForstaBot {
             console.warn("bot is not yet registered");
             return;
         }
-        this.pgStore = new PGStore('message_vault');
-        await this.pgStore.initialize();
         this.atlas = await BotAtlasClient.factory();
         this.getUsers = cache.ttl(60, this.atlas.getUsers.bind(this.atlas));
         this.resolveTags = cache.ttl(60, this.atlas.resolveTags.bind(this.atlas));
@@ -103,31 +100,6 @@ class ForstaBot {
                 this.threadStatus[msg.threadId].currentQuestion.prompt, 
                 actions
             );
-        }
-
-        await this.pgStore.addMessage({
-            payload: JSON.stringify(envelope),
-            received,
-            distribution: JSON.stringify(distribution),
-            messageId,
-            threadId,
-            senderId,
-            senderLabel,
-            recipientIds,
-            recipientLabels,
-            attachmentIds,
-            tsMain: messageText,
-            tsTitle: threadTitle
-        });
-
-        for (let i = 0; i < attachmentIds.length; i++) {
-            await this.pgStore.addAttachment({
-                id: attachmentIds[i],
-                data: attachmentData[i].data,
-                type: attachmentMeta[i].type,
-                name: attachmentMeta[i].name,
-                messageId: messageId
-            });
         }
     }
 
