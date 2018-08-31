@@ -82,17 +82,25 @@ class ForstaBot {
             if(!validResponse) return;
         }
 
-        if(this.threadStatus[msg.threadId].currentQuestion.type == 'Free Response') return;
-        this.threadStatus[msg.threadId].waitingForResponse = true;
-        let actions = this.threadStatus[msg.threadId].currentQuestion.responses.map( (response, index) => {
-            return {title: response.text, color: this.lowercaseFirst(response.color), action: index};
-        });
-        this.sendActionMessage(
-            dist, 
-            msg.threadId,
-            this.threadStatus[msg.threadId].currentQuestion.prompt, 
-            actions
-        );
+        if(this.threadStatus[msg.threadId].currentQuestion.type == 'Free Response') {
+            this.threadStatus[msg.threadId].waitingForResponse = true;
+            this.sendMessage(
+                dist, 
+                msg.threadId, 
+                this.threadStatus[msg.threadId].currentQuestion.prompt
+            );
+        } else {
+            this.threadStatus[msg.threadId].waitingForResponse = true;
+            let actions = this.threadStatus[msg.threadId].currentQuestion.responses.map( (response, index) => {
+                return {title: response.text, color: this.lowercaseFirst(response.color), action: index};
+            });
+            this.sendActionMessage(
+                dist, 
+                msg.threadId,
+                this.threadStatus[msg.threadId].currentQuestion.prompt, 
+                actions
+            );
+        }
     }
 
     parseEv(ev){
@@ -182,15 +190,7 @@ class ForstaBot {
 
     parseResponse(msg){
         if(this.threadStatus[msg.threadId].currentQuestion.type == 'Free Response'){
-            let response = {};
-            let currentQuestionIndex = this.threadStatus[msg.threadId].questions.indexOf(this.threadStatus[msg.threadId].currentQuestion);
-            if(currentQuestionIndex == this.questions.length - 1){
-                response.action = 'End of Question Set';   
-            }else{
-                response.action = 'Forward to Question';
-                response.actionOption = 'Question ' + (currentQuestionIndex + 2); 
-            }
-            return response;
+            return this.threadStatus[msg.threadId].currentQuestion.responses[0];
         }else{
             let responseNumber = Number(msg.data.action);
             if(responseNumber > this.threadStatus[msg.threadId].currentQuestion.responses.length - 1 || responseNumber < 0){
@@ -464,7 +464,7 @@ class ForstaBot {
 
         this.msgSender.send({
             distribution,
-            threadTitle: 'Compliance Alerts',
+            threadTitle: 'Live Chat Alerts',
             threadId: await this.getSoloAuthThreadId(),
             text: fullMessage
         });
