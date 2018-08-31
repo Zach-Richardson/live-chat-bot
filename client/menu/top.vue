@@ -5,12 +5,31 @@ div [class*="pull left"] {
 }
 div [class*="pull right"] {
   float: right;
-   margin-right: 0.25em;
+  margin-right: 0.25em;
 }
+a{
+    color:#ddd;
+}
+a:hover{
+    color:#aaa;
+}
+.hover-gray:hover{
+    cursor: pointer;
+    color:#ddd;
+}
+.header{
+    color:white;
+    display:inline;
+    vertical-align:middle;
+    margin-left:12px;
+    cursor:pointer;
+}
+
 </style>
 
 <template>
-    <div class="ui inverted menu" style="z-index: 1;">
+    <div>
+     <div class="ui inverted menu" style="z-index: 1;">
         <div class="ui container">
             <router-link :to="{name: 'questions'}" class="header item">
                 <img class="logo" src="/static/images/forsta-logo-invert.svg"/>
@@ -25,6 +44,9 @@ div [class*="pull right"] {
                     <i class="large user icon"></i>
                     <i class="dropdown icon"></i>
                     <div class="menu left">
+                        <div class="item" @click="questions">
+                            <i class="comment alternate outline icon tiny"></i> Questions 
+                        </div>
                         <div class="item" @click="businessHours">
                             <i class="clock icon tiny"></i> Business Hours 
                         </div>
@@ -34,12 +56,36 @@ div [class*="pull right"] {
                         <div class="item" @click="settings">
                             Settings
                         </div>
-                        <div class="item" @click="logout">
+                        <div class="item" @click="showingSignOutModal = true">
                             Sign Out
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+        <div>
+            <sui-modal v-model="showingSignOutModal">
+                <sui-modal-header>Sign Out</sui-modal-header>
+                <sui-modal-content>
+                    <sui-modal-description>
+                        <sui-header>Are you sure you want to sign out?</sui-header>
+                        <p>Any unsaved changes may be lost.</p>
+                    </sui-modal-description>
+                </sui-modal-content>
+                <sui-modal-actions style="padding:10px">
+                    <sui-button 
+                        class="yellow" 
+                        floated="left"
+                        @click="showingSignOutModal = false"
+                        content="Cancel" />
+                    <sui-button 
+                        floated="right" 
+                        class="green" 
+                        @click="logout()"
+                        content="Sign Out" />
+                </sui-modal-actions>
+            </sui-modal>
         </div>
     </div>
 </template>
@@ -50,20 +96,21 @@ shared = require('../globalState');
 module.exports = {
     data: () => ({ 
         global: shared.state,
-        loggedIn: false
+        loggedIn: false,
+        showingSignOutModal: false
     }),
     methods: {
         logout: function () {
             this.global.apiToken = null;
+        },
+        questions: function () {
+            this.$router.push({ name: 'questions' });
         },
         settings: function () {
             this.$router.push({ name: 'settings' });
         },
         businessHours: function () {
             this.$router.push({ name: 'businessHours' });
-        },
-        distributions: function () {
-            this.$router.push({ name: 'distributions' });
         },
         messageHistory: function () {
             this.$router.push({ name: 'messageHistory' });

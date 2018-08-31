@@ -129,7 +129,6 @@ module.exports = {
         }
     },
     mounted: function() {
-        util.checkPrerequisites.call(this);
         this.getAdmins();
         this.interval = setInterval(() => this.getAdmins(), REFRESH_POLL_RATE); 
     },

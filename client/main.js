@@ -3,8 +3,15 @@ function main() {
     const Vue = require('vue');
     const VueRouter = require('vue-router');
     const SuiVue = require('semantic-ui-vue');
+    const VueMq = require('vue-mq');
     Vue.use(VueRouter);
     Vue.use(SuiVue.default);
+    Vue.use(VueMq, {
+        breakpoints: {
+          smallScreen: 1390,
+          bigScreen: Infinity
+        }
+    });
 
     const Root = require('./root.vue');
     const routes = [
@@ -17,7 +24,7 @@ function main() {
         { path: '/questions', name: 'questions', component: require('./questions/questions.vue') },
         { path: '/businessHours', name: 'businessHours', component: require('./businessHours/businessHours.vue') },
         { path: '/messageHistory', name: 'messageHistory', component: require('./messageHistory/messageHistory.vue') },
-        { path: '*', redirect: '/welcome' }
+        { path: '*', redirect: 'welcome' }
     ];
 
     const router = new VueRouter({

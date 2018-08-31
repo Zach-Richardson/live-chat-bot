@@ -5,18 +5,17 @@
 </style>
 
 <template lang="html">
-    <div class="ui container center aligned">
+    <div class="ui container left aligned">
 
-        <div class="ui basic segment huge">
-            <h1 class="ui header">
-                <i class="archive icon"></i>
-                Live Chat Message History
-            </h1>
+        <div class="ui basic segment" style="padding-top:5%">
+            <h2 class="ui header">
+                Message History
+            </h2>
         </div>
 
         <!--  QUESTION EDIT TABLE -->
-
-        <sui-table class="ui left aligned table">
+            <sui-table 
+                style="height:500px;overflow:auto;">
             <sui-table-header>
                 <sui-table-row>
                     <sui-table-header-cell>
@@ -30,7 +29,7 @@
                     </sui-table-header-cell>
                 </sui-table-row>
             </sui-table-header>
-            <sui-table-body style="height:500px;overflow:auto;">
+            <sui-table-body>
                 <sui-table-row
                     class="hover-grey"
                     @click="selectThread(thread)"

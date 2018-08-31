@@ -76,8 +76,8 @@ class ForstaBot {
 
         const dist = await this.resolveTags(msg.distribution.expression);
         if(msg.data.action 
-            && this.threadStatus[msg.data.action] 
-            && this.threadStatus[msg.data.action].waitingForDistTakeover){
+        && this.threadStatus[msg.data.action] 
+        && this.threadStatus[msg.data.action].waitingForDistTakeover){
             this.handleDistTakeover(msg, dist);
             return;
         }else if(this.threadStatus[msg.threadId].waitingForResponse){
