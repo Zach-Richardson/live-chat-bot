@@ -15,7 +15,13 @@ process.on('unhandledRejection', ev => {
 
 
 async function run() {
-    relay.storage.setLabel('bot-1');
+    if (process.env.RELAY_STORAGE_BACKING !== 'postgres') {
+        const msg = 'Live Chat reqires a postgres backing store -- have you set RELAY_STORAGE_BACKING in your environment?';
+        console.error(msg);
+        throw Error(msg);
+    }
+
+    relay.storage.setLabel('live-chat');
     const bot = new ForstaBot();
     await bot.start();
     const webServer = new WebServer(bot);

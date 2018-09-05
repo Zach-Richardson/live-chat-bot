@@ -14,6 +14,7 @@ class ForstaBot {
 
     async start() {
         this.ourId = await relay.storage.getState('addr');
+        
         if (!this.ourId) {
             console.warn("bot is not yet registered");
             return;
@@ -58,7 +59,6 @@ class ForstaBot {
     }
 
     async onMessage(ev) {
-        const received = new Date(ev.data.timestamp);
         const envelope = JSON.parse(ev.data.message.body);
         const msg = envelope.find(x => x.version === 1);
         if (!msg) {
