@@ -174,9 +174,49 @@ div [class*="pull right"] {
                 class="left aligned"
                 v-if="question.type==='Free Response'">
                 <sui-grid-column>
-                    <p>
-                        The user's response will be saved and the user will be prompted with the next question.
-                    </p>
+                    <sui-grid >
+                        <sui-grid-row 
+                            :columns="1">
+                            <sui-grid-column>
+                                <sui-list divided relaxed>
+                                    <sui-list-item>
+                                        <sui-list-content style="color:#777">
+                                            <span is="sui-list-header">
+                                                <sui-label
+                                                    pointing="right"
+                                                    color="teal"
+                                                    style="vertical-align:middle">Action</sui-label>
+                                                <sui-dropdown      
+                                                    selection
+                                                    :options="questionActions"
+                                                    v-model="question.responses[0].action"
+                                                    @input="checkForChanges()"/>
+                                                <sui-icon
+                                                    name="arrow right"
+                                                    size="large" />
+                                                <span v-if="question.responses[0].action==='Forward to Question'">
+                                                    <sui-dropdown   
+                                                        selection
+                                                        placeholder="Question"
+                                                        :options="questionsForDropdown"
+                                                        v-model="question.responses[0].actionOption"
+                                                        @input="checkForChanges()"/>
+                                                </span>
+                                                <span v-if="question.responses[0].action==='Forward to Tag'">
+                                                    <sui-dropdown      
+                                                        selection
+                                                        placeholder="Tag"
+                                                        :options="tagsForDropdown"
+                                                        v-model="question.responses[0].tagId"
+                                                        @input="updateTagData(question.responses[0])"/>
+                                                </span>
+                                            </span>
+                                        </sui-list-content>
+                                    </sui-list-item>
+                                </sui-list>
+                            </sui-grid-column>
+                        </sui-grid-row>
+                    </sui-grid>
                 </sui-grid-column>
             </sui-grid-row>
         </sui-grid>
