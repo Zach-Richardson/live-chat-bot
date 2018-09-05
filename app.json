@@ -10,7 +10,7 @@
       "RELAY_STORAGE_BACKING": {
         "description": "Control where bot settings and data will be stored.  For heroku 'postgresql' is recommended.",
         "required": false,
-        "value": "postgres"
+        "value": "redis"
       },
       "HEROKU_FORCE_SSL": {
         "description": "Require that all communications with the compliance monitor be via SSL.",

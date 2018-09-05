@@ -30,7 +30,6 @@ div [class*="pull right"] {
             style="padding-top:5%;"
             divided="vertically"
             v-for="question in questions">
-
             <sui-grid-row 
                 :columns="1">
                 <sui-grid-column>
