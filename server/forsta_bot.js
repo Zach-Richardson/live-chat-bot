@@ -3,6 +3,7 @@
 const BotAtlasClient = require('./atlas_client');
 const cache = require('./cache');
 const relay = require('librelay');
+const PGStore = require("./pgstore");
 const uuid4 = require('uuid/v4');
 const moment = require('moment');
 const words = require("./authwords");
@@ -17,6 +18,8 @@ class ForstaBot {
             console.warn("bot is not yet registered");
             return;
         }
+        this.pgStore = new PGStore('live_chat');
+        await this.pgStore.initialize();
         this.atlas = await BotAtlasClient.factory();
         this.getUsers = cache.ttl(60, this.atlas.getUsers.bind(this.atlas));
         this.resolveTags = cache.ttl(60, this.atlas.resolveTags.bind(this.atlas));
@@ -31,12 +34,13 @@ class ForstaBot {
         this.outgoingThreadId = uuid4();
     }
 
-    stop() {
+    async stop() {
         if (this.msgReceiver) {
             console.warn("Stopping message receiver");
             this.msgReceiver.close();
             this.msgReceiver = null;
         }
+        await this.pgStore.shutdown();
     }
 
     async restart() {
@@ -54,8 +58,13 @@ class ForstaBot {
     }
 
     async onMessage(ev) {
-        let msg = this.parseEv(ev);
-        if(!msg) console.error("Received unsupported message!");
+        const received = new Date(ev.data.timestamp);
+        const envelope = JSON.parse(ev.data.message.body);
+        const msg = envelope.find(x => x.version === 1);
+        if (!msg) {
+            console.error('Dropping unsupported message:', envelope);
+            return;
+        }
 
         if(!this.threadStatus[msg.threadId] && !msg.data.action){ //initialize
             let businessHours = await relay.storage.get('live-chat-bot', 'business-hours');
@@ -114,19 +123,6 @@ class ForstaBot {
                 actions
             );
         }
-    }
-
-    parseEv(ev){
-        const message = ev.data.message;
-        const msgEnvelope = JSON.parse(message.body);
-        let msg;
-        for (const x of msgEnvelope) {
-            if (x.version === 1) {
-                msg = x;
-                break;
-            }
-        }
-        return msg;
     }
 
     async handleDistTakeover(msg, forwardingDist){
