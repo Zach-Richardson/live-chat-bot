@@ -1,5 +1,5 @@
 live-chat:
-  image: forstalabs/live-chat-bot
+  image: forstaapps/live-chat-bot
   ports:
     - "4096:4096"
   environment:

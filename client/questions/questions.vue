@@ -58,7 +58,9 @@ div [class*="pull right"] {
                                         color="teal"
                                         style="vertical-align:middle">Prompt</sui-label>
                                     <sui-input
-                                        style="width:90%"
+                                        :style="$mq | mq({
+                                            smallScreen: 'width:80%',
+                                            bigScreen: 'width:90%'})"
                                         class="flexbox"
                                         v-model="question.prompt"
                                         :value="question.prompt"
@@ -85,12 +87,12 @@ div [class*="pull right"] {
                     </sui-list>
                 </sui-grid-column>
             </sui-grid-row>
-            <sui-grid-row>
+            <sui-grid-row v-if="question.type!='Free Response'">
                 <sui-grid-column>
-                    <sui-grid v-for="response in question.responses">
+                    <sui-grid 
+                        v-for="response in question.responses">
                         <sui-grid-row 
-                            :columns="1"
-                            v-if="question.type!='Free Response'">
+                            :columns="1">
                             <sui-grid-column>
                                 <sui-button 
                                     icon="edit"
@@ -103,7 +105,9 @@ div [class*="pull right"] {
                                     style="vertical-align:middle"
                                     @click="deleteResponse(question, response)" />
                                 <sui-input
-                                    style="width:85%"
+                                    :style="$mq | mq({
+                                            smallScreen: 'width:65%',
+                                            bigScreen: 'width:85%'})"
                                     class="flexbox"
                                     v-model="response.text"
                                     :value="response.text"

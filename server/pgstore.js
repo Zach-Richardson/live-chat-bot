@@ -29,17 +29,6 @@ class PGStore {
                 ts_title         tsvector
             );`;
 
-        this.queryCreateQuestionTableIfNeeded = `
-            CREATE TABLE IF NOT EXISTS ${this.prefix}_question (
-                id                uuid PRIMARY KEY
-                type              text,
-                text              text,
-                action            text,
-                distribution_tags uuid[],
-                next_question     integer,
-                response_actions  jsonb     
-            );`;
-
         this.queryCreateAttachmentTableIfNeeded = `
             CREATE TABLE IF NOT EXISTS ${this.prefix}_attachment (
                 id           uuid PRIMARY KEY,
@@ -65,19 +54,6 @@ class PGStore {
                 ts_title
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, to_tsvector($11), to_tsvector($12), $13
-            )`;
-
-        this.queryAddQuestion = `
-            INSERT INTO ${this.prefix}_question (
-                id,
-                type,
-                text,
-                action,
-                distribution_tags,
-                next_question,
-                response_actions
-            ) VALUES (
-                $1, $2, $3, $4, $5, $6, $7
             )`;
 
         this.queryAddAttachment = `
