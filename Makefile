@@ -16,6 +16,11 @@ grunt: $(GRUNT)
 NPATH := $(shell pwd)/node_modules/.bin
 SRC := $(shell find client html images stylesheets server -type f)
 
+PG_SITE := https://get.enterprisedb.com/postgresql/
+PG_BIN_LINUX := postgresql-10.3-3-linux-x64-binaries.tar.gz
+PG_BIN_WINDOWS := postgresql-10.3-3-windows-x64-binaries.zip
+PG_BIN_DARWIN := postgresql-10.3-3-osx-binaries.zip
+
 ########################################################
 # Building & cleaning targets
 ########################################################

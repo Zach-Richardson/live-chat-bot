@@ -22,6 +22,7 @@ async function run() {
     }
 
     relay.storage.setLabel('live-chat');
+    await relay.storage.initialize();
     const bot = new ForstaBot();
     await bot.start();
     const webServer = new WebServer(bot);
