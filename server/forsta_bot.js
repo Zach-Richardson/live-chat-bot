@@ -61,6 +61,7 @@ class ForstaBot {
     async onMessage(ev) {
         const received = new Date(ev.data.timestamp);
         const envelope = JSON.parse(ev.data.message.body);
+        const attachmentData = ev.data.message.attachments || [];
         const msg = envelope.find(x => x.version === 1);
         if (!msg) {
             console.error('Dropping unsupported message:', envelope);
@@ -73,7 +74,7 @@ class ForstaBot {
         const action = msg.data.action;
         const threadId = msg.threadId;
 
-        this.saveToMessageHistory(received, envelope, msg);
+        this.saveToMessageHistory(received, envelope, msg, attachmentData);
 
         if(!action && !this.threadStatus[threadId]) {            
             this.threadStatus[threadId] = {
@@ -143,12 +144,6 @@ class ForstaBot {
         }
 
         const users = await this.getUsers(dist.userids);
-        this.saveToMessageHistory({
-            text: response.text,
-            action: response.action,
-            senderId: msg.sender.userId,
-            threadId: msg.threadId
-        });
         this.threadStatus[msg.threadId].waitingForResponse = false;
         if(response.action == "Forward to Tag")
         {
@@ -202,7 +197,7 @@ class ForstaBot {
         }
     }
 
-    async saveToMessageHistory(received, envelope, message) {
+    async saveToMessageHistory(received, envelope, message, attachmentData) {
         const senderId = message.sender.userId;
         const sender = (await this.getUsers([senderId]))[0];
         const senderLabel = this.fqLabel(sender);
@@ -219,7 +214,6 @@ class ForstaBot {
         const tmpText = tmpBody && tmpBody.find(x => x.type === 'text/plain');
         const messageText = (tmpText && tmpText.value) || '';
 
-        const attachmentData = ev.data.message.attachments || [];
         const attachmentMeta = (message.data && message.data.attachments) || [];
         if (attachmentData.length != attachmentMeta.length) {
             console.error('Received mismatched attachments with message:', envelope);
@@ -291,12 +285,6 @@ class ForstaBot {
     }
 
     async sendMessage(dist, threadId, text){
-        this.saveToMessageHistory({
-            senderId: this.ourId,
-            text,
-            action: null,
-            threadId
-        });
         return this.msgSender.send({
             distribution: dist,
             threadId: threadId,
@@ -316,15 +304,7 @@ class ForstaBot {
     }
 
     sendActionMessage(dist, threadId, text, actions, threadTitle){
-        if(threadId != this.outgoingThreadId){
-            this.saveToMessageHistory({
-                senderId: this.ourId,
-                text,
-                action: null,
-                threadId
-            });
-        }
-        let title = threadTitle || '';
+        const title = threadTitle || '';
         return this.msgSender.send({
             distribution: dist,
             threadId: threadId,

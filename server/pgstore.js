@@ -53,7 +53,7 @@ class PGStore {
                 ts_main,
                 ts_title
             ) VALUES (
-                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, to_tsvector($11), to_tsvector($12), $13
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, to_tsvector($11), to_tsvector($12)
             )`;
 
         this.queryAddAttachment = `
