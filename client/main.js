@@ -20,7 +20,7 @@ function main() {
         { path: '/auth/code', name: 'loginCode', component: require('./auth/loginCode.vue') },
         { path: '/onboard/tag', name: 'onboardTag', component: require('./onboard/onboardTag.vue') },
         { path: '/onboard/auth/:type/:tag', name: 'onboardAuth', component: require('./onboard/onboardAuth.vue') },
-        { path: '/settings', name: 'settings', component: require('./settings/settings.vue') },
+        { path: '/users', name: 'users', component: require('./users/users.vue') },
         { path: '/questions', name: 'questions', component: require('./questions/questions.vue') },
         { path: '/businessHours', name: 'businessHours', component: require('./businessHours/businessHours.vue') },
         { path: '/messageHistory', name: 'messageHistory', component: require('./messageHistory/messageHistory.vue') },
