@@ -146,7 +146,7 @@ div [class*="pull right"] {
                 <sui-button
                     style="margin-top:25px"
                     color="green"
-                    content="Add"
+                    content="Add Choice"
                     @click="newResponse(question)"
                     v-if="question.type==='Multiple Choice'"/>
                 </sui-grid-column>
