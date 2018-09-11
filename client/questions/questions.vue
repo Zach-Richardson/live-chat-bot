@@ -12,14 +12,10 @@ div [class*="pull right"] {
     flex: 1;
     margin-right:0.5em;
 }
-.color-box {
-    width: 10px;
-    height: 10px;
-    display: inline-block;
-    background-color: #ccc;
-    position: absolute;
-    left: 5px;
-    top: 5px;
+.color-picker input[type="color"] {
+    height: 40px;
+    width: 70px;
+    vertical-align: middle;
 }
 </style>
  
@@ -120,21 +116,13 @@ div [class*="pull right"] {
                                         :options="tagsForDropdown"
                                         v-model="response.tagId"
                                         @input="updateTagData(response)"/>
-                                </span>
-                                <sui-dropdown
-                                    button
-                                    :class="response.color">
-                                    <sui-dropdown-menu selection>
-                                        <sui-dropdown-item
-                                            v-for="color in colorsForDropdown"
-                                            @click="setResponseColor(response, color.text)"
-                                            :value="color.text">
-                                            <sui-icon 
-                                                name="stop"
-                                                :color="color.text" />
-                                        </sui-dropdown-item>
-                                    </sui-dropdown-menu>
-                                </sui-dropdown>
+                                </span>                                
+                                <sui-input
+                                    type="color"
+                                    class="color-picker"
+                                    :value="response.color"
+                                    v-model="response.color"
+                                    @input="checkForChanges()"/>  
                                 <sui-button 
                                     color="red"
                                     icon="trash alternate outline"
@@ -297,16 +285,14 @@ module.exports = {
                         action: 'Forward to Question',
                         actionOption: "Question 1",
                         tagId: null,
-                        color: 'blue',
-                        editing: true
+                        color: '#0000ff'
                     },
                     {
                         text: "No",
                         action: 'Forward to Question',
                         actionOption: "Question 1",
                         tagId: null,
-                        color: 'blue',
-                        editing: true
+                        color: '#ff0000'
                     }
                 ]
             });
@@ -322,8 +308,7 @@ module.exports = {
                 action: "Forward to Question",
                 actionOption: `Question ${this.questions.indexOf(question)+1}`,
                 distId: null,
-                color: 'blue',
-                editing: false
+                color: '#00ff00'
             });
             this.changesMade = true;
         },
@@ -332,16 +317,13 @@ module.exports = {
             this.nextRoute();
         },
         saveData: function() {
+            console.log(this.questions);
             util.fetch('/api/questions/', {
                 method:'post',
                 body: { questions: this.questions }
             });
             this.changesMade = false;
             this.questionsOriginal = JSON.stringify(this.questions);
-        },
-        setResponseColor: function(response, color) {
-            this.checkForChanges();
-            response.color = color;
         },
         updateTagData: function(response) {
             response.actionOption = this.tags.find(t => t.id === response.tagId).slug;
@@ -386,24 +368,6 @@ module.exports = {
                 {
                     text: "Multiple Choice",
                     value: "Multiple Choice"
-                }
-            ],
-            colorsForDropdown: [
-                {
-                    text: 'blue',
-                    value: 'blue'
-                },
-                {
-                    text: 'green',
-                    value: 'green'
-                },
-                {
-                    text: 'red',
-                    value: 'red'
-                },
-                {
-                    text: 'yellow',
-                    value: 'yellow'
                 }
             ]
         }

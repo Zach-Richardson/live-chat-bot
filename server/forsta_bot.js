@@ -67,8 +67,6 @@ class ForstaBot {
             console.error('Dropping unsupported message:', envelope);
             return;
         }
-        
-        const dist = await this.resolveTags(msg.distribution.expression); 
 
         const businessHours = await relay.storage.get('live-chat-bot', 'business-hours');
         const questions = await relay.storage.get('live-chat-bot', 'questions');        
@@ -107,9 +105,11 @@ class ForstaBot {
             this.sendMessage(dist, threadId, prompt);
         } else {
             const prompt = this.threadStatus[threadId].currentQuestion.prompt;
-            const actions = this.threadStatus[threadId].currentQuestion.responses.map( (response, index) => {
-                return {title: response.text, color: this.lowercaseFirst(response.color), action: index};
-            });
+            const actions = this.threadStatus[threadId].currentQuestion.responses.map( 
+                (response, index) => { 
+                    return { title: response.text, color: response.color, action: index };
+                }
+            );
             this.threadStatus[threadId].waitingForResponse = true;            
             this.sendActionMessage(dist, threadId, prompt, actions);
         }
@@ -247,10 +247,6 @@ class ForstaBot {
                 messageId: messageId
             });
         }
-    }
-
-    lowercaseFirst(str){
-        return str.charAt(0).toLowerCase() + str.slice(1, str.length);
     }
 
     outOfOffice(businessHours){
