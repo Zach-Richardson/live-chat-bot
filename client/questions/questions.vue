@@ -32,6 +32,10 @@ div [class*="pull right"] {
                     <h2 class="pull left" style="display:inline;vertical-align:middle">
                         Question {{questions.indexOf(question)+1}}
                     </h2>
+                    <sui-button-group vertical basic>
+                      <sui-button icon="angle up"/>
+                      <sui-button icon="angle down"/>
+                    </sui-button-group>
                     <sui-button
                         class="pull right"
                         color="red"
