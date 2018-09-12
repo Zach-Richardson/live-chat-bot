@@ -67,8 +67,6 @@ class ForstaBot {
             console.error('Dropping unsupported message:', envelope);
             return;
         }
-        
-        const dist = await this.resolveTags(msg.distribution.expression); 
 
         const businessHours = await relay.storage.get('live-chat-bot', 'business-hours');
         const questions = await relay.storage.get('live-chat-bot', 'questions');        
