@@ -91,7 +91,7 @@ class ForstaBot {
             this.sendMessage(dist, threadId, businessHours.message);
         }
 
-        if(this.threadStatus[action] && this.threadStatus[threadId].waitingForTakeover){
+        if(this.threadStatus[action] && this.threadStatus[action].waitingForTakeover){
             this.handleDistTakeover(msg, dist);
             return;
         } else if(this.threadStatus[threadId].waitingForResponse){
