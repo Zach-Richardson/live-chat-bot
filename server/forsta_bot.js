@@ -91,6 +91,11 @@ class ForstaBot {
             this.sendMessage(dist, threadId, businessHours.message);
         }
 
+        if(this.threadStatus[threadId] && this.threadStatus[threadId].listening) {
+            this.saveToMessageHistory(received, envelope, msg, attachmentData);
+            return;
+        }
+
         if(this.threadStatus[action] && this.threadStatus[action].waitingForTakeover){
             this.handleDistTakeover(msg, dist);
             return;
