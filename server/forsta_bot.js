@@ -74,8 +74,6 @@ class ForstaBot {
         const action = msg.data.action;
         const threadId = msg.threadId;
 
-        this.saveToMessageHistory(received, envelope, msg, attachmentData);
-
         if(!action && !this.threadStatus[threadId]) {            
             this.threadStatus[threadId] = {
                 questions,
