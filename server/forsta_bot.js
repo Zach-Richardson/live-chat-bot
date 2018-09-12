@@ -74,6 +74,9 @@ class ForstaBot {
         const action = msg.data.action;
         const threadId = msg.threadId;
 
+        console.log("ACTION: ", action);
+        console.log("THREAD ID: ", threadId);
+
         this.saveToMessageHistory(received, envelope, msg, attachmentData);
 
         if(!action && !this.threadStatus[threadId]) {            
@@ -91,7 +94,7 @@ class ForstaBot {
             this.sendMessage(dist, threadId, businessHours.message);
         }
 
-        if(this.threadStatus[action] && this.threadStatus[threadId].waitingForTakeover){
+        if(this.threadStatus[action] && this.threadStatus[action].waitingForTakeover){
             this.handleDistTakeover(msg, dist);
             return;
         } else if(this.threadStatus[threadId].waitingForResponse){
