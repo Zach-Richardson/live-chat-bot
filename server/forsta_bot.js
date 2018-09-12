@@ -74,11 +74,6 @@ class ForstaBot {
         const action = msg.data.action;
         const threadId = msg.threadId;
 
-        console.log("ACTION: ", action);
-        console.log("THREAD ID: ", threadId);
-
-        this.saveToMessageHistory(received, envelope, msg, attachmentData);
-
         if(!action && !this.threadStatus[threadId]) {            
             this.threadStatus[threadId] = {
                 questions,
@@ -94,6 +89,11 @@ class ForstaBot {
             this.sendMessage(dist, threadId, businessHours.message);
         }
 
+        if(this.threadStatus[threadId] && this.threadStatus[threadId].listening) {
+            this.saveToMessageHistory(received, envelope, msg, attachmentData);
+            return;
+        }
+
         if(this.threadStatus[action] && this.threadStatus[action].waitingForTakeover){
             this.handleDistTakeover(msg, dist);
             return;
@@ -107,6 +107,8 @@ class ForstaBot {
             this.threadStatus[threadId].waitingForResponse = true;
             this.sendMessage(dist, threadId, prompt);
         } else {
+            console.log("ACTION: ", action);
+            console.log("THREAD ID: ", threadId);
             const prompt = this.threadStatus[threadId].currentQuestion.prompt;
             const actions = this.threadStatus[threadId].currentQuestion.responses.map( 
                 (response, index) => { 
