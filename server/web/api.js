@@ -352,33 +352,6 @@ class BusinessHoursAPIV1 extends APIHandler {
 
 }
 
-class MessageHistoryAPIV1 extends APIHandler {
-
-    constructor(options) {
-        super(options);
-        this.router.get('/*', this.asyncRoute(this.onGet, false));
-    }
-
-    async onGet(req, res){
-        let messageHistory = await relay.storage.get('live-chat-bot', 'message-history');
-        if(!messageHistory){
-            messageHistory = {
-                date: 'MM/DD/YYYY',
-                messages: [{
-                    user: {slug: "", id: ""},
-                    date: "",
-                    time: "",
-                    prompt:"No messages found in history!",
-                    response:"No messages found in history!",
-                    action:"None"
-                }]
-            };
-        }
-        res.status(200).json(messageHistory);
-    }
-
-}
-
 class TagsAPIV1 extends APIHandler {
 
     constructor(options) {
@@ -400,6 +373,5 @@ module.exports = {
     AuthenticationAPIV1,
     QuestionsAPIV1,
     BusinessHoursAPIV1,
-    MessageHistoryAPIV1,
     TagsAPIV1
 };

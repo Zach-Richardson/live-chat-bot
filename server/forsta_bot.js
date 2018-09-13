@@ -107,8 +107,6 @@ class ForstaBot {
             this.threadStatus[threadId].waitingForResponse = true;
             this.sendMessage(dist, threadId, prompt);
         } else {
-            console.log("ACTION: ", action);
-            console.log("THREAD ID: ", threadId);
             const prompt = this.threadStatus[threadId].currentQuestion.prompt;
             const actions = this.threadStatus[threadId].currentQuestion.responses.map( 
                 (response, index) => { 
