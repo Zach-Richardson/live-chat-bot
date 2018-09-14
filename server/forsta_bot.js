@@ -101,6 +101,10 @@ class ForstaBot {
         
         await this.saveToMessageHistory(received, envelope, msg, attachmentData);
 
+        if(this.threadStatus[threadId] && this.threadStatus[threadId].listening) {
+            return;
+        }
+
         if(this.outOfOffice(businessHours)){
             this.sendMessage(dist, threadId, businessHours.message);
         }
@@ -117,7 +121,7 @@ class ForstaBot {
             const prompt = this.threadStatus[threadId].currentQuestion.prompt;
             this.threadStatus[threadId].waitingForResponse = true;
             await this.sendMessage(dist, threadId, prompt);
-        } else if(!this.threadStatus[action].listening) {
+        } else {
             const prompt = this.threadStatus[threadId].currentQuestion.prompt;
             const actions = this.threadStatus[threadId].currentQuestion.responses.map( 
                 (response, index) => { 
@@ -125,7 +129,7 @@ class ForstaBot {
                 }
             );
             this.threadStatus[threadId].waitingForResponse = true;            
-            this.sendActionMessage(dist, threadId, prompt, actions);
+            await this.sendActionMessage(dist, threadId, prompt, actions);
         }
     }
 
