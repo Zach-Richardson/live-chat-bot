@@ -155,51 +155,51 @@ class ForstaBot {
     }
 
     async handleResponse(msg, dist, users){
-        let response = this.parseResponse(msg, this.threadStatus[msg.threadId]);  
+        const response = this.parseResponse(msg, this.threadStatus[msg.threadId]);
+        const noActionError = `ERROR: response action not configured !`;
+        const noForwardError = `ERROR: Forwarding distribution does not exist.`;
+        const forwardMessage = `A live chat user is trying to get in touch with you. Respond to take over the chat.`;
+        const tagMessage = `A member of our team will be with you shortly.`;
+        
         if(!response.action){
-            this.sendMessage(dist, msg.threadId, `ERROR: response action not configured !`);
+            await this.sendMessage(dist, msg.threadId, noActionError);
             this.questions = undefined;
             return;
         }
 
         this.threadStatus[msg.threadId].waitingForResponse = false;
-        if(response.action === "Forward to Tag")
-        {
-            this.sendMessage(
-                dist, 
-                msg.threadId, 
-                `A member of our team will be with you shortly.`
-            );
-            let botTagId = users.filter(u => u.id === this.ourId)[0].tag.id;
-            let forwardingDist = await this.resolveTags(`(<${response.tagId}>+<${botTagId}>)`);
+
+        if(response.action === "Forward to Tag") {
+            const botTagId = users.filter(u => u.id === this.ourId)[0].tag.id;
+            const forwardingDist = await this.resolveTags(`(<${response.tagId}>+<${botTagId}>)`);
+            await this.sendMessage( dist, msg.threadId, tagMessage);
+            
             if(!forwardingDist){
-                this.sendMessage(dist, msg.threadId, `Whoops! There was an error.`);
-                console.log('ERROR: response tagId configured to a non-existent tag');
+                await this.sendMessage(dist, msg.threadId, noForwardError);
+                console.log(noForwardError);
                 return;
             }
+
             let forwardingToDistMsg = await this.sendActionMessage(
                 forwardingDist, 
                 this.outgoingThreadId, 
-                `A live chat user is trying to get in touch with you. Respond to take over the chat.`,
+                forwardMessage,
                 [{title:'Connect', action: msg.threadId, color:'blue'}],
                 'Incoming Live Chat Calls'
             );
+
             this.threadStatus[msg.threadId].waitingForTakeover = {
                 userTagId: users.filter(u => u.id !== this.ourId)[0].tag.id,
                 msgId: JSON.parse(forwardingToDistMsg.message.dataMessage.body)[0].messageId
             };
             return;
         }
-        else if(response.action === "Forward to Question")
-        {
+
+        else if(response.action === "Forward to Question") {
             let questionNumber = Number(response.actionOption.split(' ')[1]);
             this.threadStatus[msg.threadId].currentQuestion = this.threadStatus[msg.threadId].questions[questionNumber-1];
         }
-        else if(response.action === "End of Question Set")
-        {
-            this.sendMessage(dist, msg.threadId, `End of question set!`);
-            this.threadStatus[msg.threadId] = undefined;
-        }
+
         return true;
     }
 
