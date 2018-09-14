@@ -104,7 +104,7 @@ class ForstaBot {
         if(this.outOfOffice(businessHours)){
             this.sendMessage(dist, threadId, businessHours.message);
         }
-
+        
         if(this.threadStatus[action] && this.threadStatus[action].waitingForTakeover){
             await this.handleDistTakeover(msg, dist);
             return;
