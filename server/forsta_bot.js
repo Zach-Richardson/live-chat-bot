@@ -82,6 +82,7 @@ class ForstaBot {
         }
 
         const businessInfo = await relay.storage.get('live-chat-bot', 'business-info');
+        console.log("BUSINESS INFO: ", businessInfo);
         const questions = await relay.storage.get('live-chat-bot', 'questions');        
         const dist = await this.resolveTags(msg.distribution.expression);
         const action = msg.data.action;
@@ -107,6 +108,11 @@ class ForstaBot {
 
         if(this.outOfOffice(businessInfo)){
             this.sendMessage(dist, threadId, businessInfo.outOfOfficeMessage);
+            if(businessInfo.action === 'Forward to Tag') {
+                const oooDist = await this.resolveTags(businessInfo.promptTag);
+                await this.handleDistTakeover(msg, oooDist);
+                return;
+            }
         }
         
         if(this.threadStatus[action] && this.threadStatus[action].waitingForTakeover){

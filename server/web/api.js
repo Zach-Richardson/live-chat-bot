@@ -323,7 +323,7 @@ class QuestionsAPIV1 extends APIHandler {
 
 }
 
-class BusinessHoursAPIV1 extends APIHandler {
+class BusinessInfoAPIV1 extends APIHandler {
 
     constructor(options) {
         super(options);
@@ -332,22 +332,23 @@ class BusinessHoursAPIV1 extends APIHandler {
     }
 
     async onGet(req, res){
-        let businessHoursData = await relay.storage.get('live-chat-bot', 'business-info');
-        if(!businessHoursData){
-            businessHoursData = {
+        let businessInfoData = await relay.storage.get('live-chat-bot', 'business-info');
+        if(!businessInfoData){
+            businessInfoData = {
                 open: '08:00',
                 close: '20:00',
                 outOfOfficeMessage: 'This is the default out of office hours message.',
-                forwardMessage: 'This is the default forward to distribution message.'
+                forwardMessage: 'This is the default forward to distribution message.',
+                action: 'Forward to Tag'
             };
-            relay.storage.set('live-chat-bot', 'business-info', businessHoursData);
+            relay.storage.set('live-chat-bot', 'business-info', businessInfoData);
         }
-        res.status(200).json(businessHoursData);
+        res.status(200).json(businessInfoData);
     }
 
     async onPost(req, res) {
-        let businessHours = req.body.businessHoursData;
-        relay.storage.set('live-chat-bot', 'business-info', businessHours);
+        let businessInfo = req.body.businessInfoData;
+        relay.storage.set('live-chat-bot', 'business-info', businessInfo);
         res.status(200);
     }
 
@@ -373,6 +374,6 @@ module.exports = {
     OnboardAPIV1,
     AuthenticationAPIV1,
     QuestionsAPIV1,
-    BusinessHoursAPIV1,
+    BusinessInfoAPIV1,
     TagsAPIV1
 };
