@@ -116,8 +116,8 @@ class ForstaBot {
         if(this.threadStatus[threadId].currentQuestion.type === 'Free Response') {
             const prompt = this.threadStatus[threadId].currentQuestion.prompt;
             this.threadStatus[threadId].waitingForResponse = true;
-            this.sendMessage(dist, threadId, prompt);
-        } else if(!this.threadStatus[threadId].listening) {
+            await this.sendMessage(dist, threadId, prompt);
+        } else if(!this.threadStatus[action].listening) {
             const prompt = this.threadStatus[threadId].currentQuestion.prompt;
             const actions = this.threadStatus[threadId].currentQuestion.responses.map( 
                 (response, index) => { 
