@@ -81,7 +81,7 @@ class ForstaBot {
             return;
         }
 
-        const businessHours = await relay.storage.get('live-chat-bot', 'business-hours');
+        const businessInfo = await relay.storage.get('live-chat-bot', 'business-info');
         const questions = await relay.storage.get('live-chat-bot', 'questions');        
         const dist = await this.resolveTags(msg.distribution.expression);
         const action = msg.data.action;
@@ -105,15 +105,15 @@ class ForstaBot {
             return;
         }
 
-        if(this.outOfOffice(businessHours)){
-            this.sendMessage(dist, threadId, businessHours.message);
+        if(this.outOfOffice(businessInfo)){
+            this.sendMessage(dist, threadId, businessInfo.outOfOfficeMessage);
         }
         
         if(this.threadStatus[action] && this.threadStatus[action].waitingForTakeover){
             await this.handleDistTakeover(msg, dist);
             return;
         } else if(this.threadStatus[threadId].waitingForResponse){
-            const validResponse = await this.handleResponse(msg, dist, users);
+            const validResponse = await this.handleResponse(msg, dist, users, businessInfo);
             if(!validResponse) return;
         }
 
@@ -158,12 +158,11 @@ class ForstaBot {
         this.threadStatus[threadId].listening = true;
     }
 
-    async handleResponse(msg, dist, users){
+    async handleResponse(msg, dist, users, businessInfo){
         const response = this.parseResponse(msg, this.threadStatus[msg.threadId]);
         const noActionError = `ERROR: response action not configured !`;
         const noForwardError = `ERROR: Forwarding distribution does not exist.`;
         const forwardMessage = `A live chat user is trying to get in touch with you. Respond to take over the chat.`;
-        const tagMessage = `A member of our team will be with you shortly.`;
         
         if(!response.action){
             await this.sendMessage(dist, msg.threadId, noActionError);
@@ -176,7 +175,7 @@ class ForstaBot {
         if(response.action === "Forward to Tag") {
             const botTagId = users.filter(u => u.id === this.ourId)[0].tag.id;
             const forwardingDist = await this.resolveTags(`(<${response.tagId}>+<${botTagId}>)`);
-            await this.sendMessage( dist, msg.threadId, tagMessage);
+            await this.sendMessage( dist, msg.threadId, businessInfo.forwardMessage);
             
             if(!forwardingDist){
                 await this.sendMessage(dist, msg.threadId, noForwardError);
@@ -269,15 +268,15 @@ class ForstaBot {
         }
     }
 
-    outOfOffice(businessHours){
-        if(!businessHours) return false;
+    outOfOffice(businessInfo){
+        if(!businessInfo) return false;
 
         const hoursNow = moment().hours();
         const minsNow = moment().minutes();
-        const openHours = Number(businessHours.open.split(':')[0]);
-        const openMins = Number(businessHours.open.split(':')[1]);
-        const closeMins = Number(businessHours.close.split(':')[1]);
-        let closeHours = Number(businessHours.close.split(':')[0]);
+        const openHours = Number(businessInfo.open.split(':')[0]);
+        const openMins = Number(businessInfo.open.split(':')[1]);
+        const closeMins = Number(businessInfo.close.split(':')[1]);
+        let closeHours = Number(businessInfo.close.split(':')[0]);
 
         if(openHours > closeHours) closeHours += 24;
         if( (hoursNow < openHours) || (hoursNow === openHours && minsNow < openMins) ){

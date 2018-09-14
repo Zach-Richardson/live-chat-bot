@@ -332,21 +332,22 @@ class BusinessHoursAPIV1 extends APIHandler {
     }
 
     async onGet(req, res){
-        let businessHoursData = await relay.storage.get('live-chat-bot', 'business-hours');
+        let businessHoursData = await relay.storage.get('live-chat-bot', 'business-info');
         if(!businessHoursData){
             businessHoursData = {
                 open: '08:00',
                 close: '20:00',
-                message: 'This is the default out of office hours message.'
+                outOfOfficeMessage: 'This is the default out of office hours message.',
+                forwardMessage: 'This is the default forward to distribution message.'
             };
-            relay.storage.set('live-chat-bot', 'business-hours', businessHoursData);
+            relay.storage.set('live-chat-bot', 'business-info', businessHoursData);
         }
         res.status(200).json(businessHoursData);
     }
 
     async onPost(req, res) {
         let businessHours = req.body.businessHoursData;
-        relay.storage.set('live-chat-bot', 'business-hours', businessHours);
+        relay.storage.set('live-chat-bot', 'business-info', businessHours);
         res.status(200);
     }
 

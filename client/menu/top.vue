@@ -47,8 +47,8 @@ a:hover{
                         <div class="item" @click="questions">
                             <i class="comment alternate outline icon tiny"></i> Questions 
                         </div>
-                        <div class="item" @click="businessHours">
-                            <i class="clock icon tiny"></i> Business Hours 
+                        <div class="item" @click="businessInfo">
+                            <i class="clock icon tiny"></i> Business Info 
                         </div>
                         <div class="item" @click="messageHistory">
                             <i class="archive icon tiny"></i> Message History 
@@ -110,7 +110,7 @@ module.exports = {
             this.$router.push({ name: 'users' });
         },
         businessHours: function () {
-            this.$router.push({ name: 'businessHours' });
+            this.$router.push({ name: 'businessInfo' });
         },
         messageHistory: function () {
             this.$router.push({ name: 'messageHistory' });
