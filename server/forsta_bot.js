@@ -95,7 +95,8 @@ class ForstaBot {
                 currentQuestion: questions[0],
                 waitingForTakeover: null,
                 waitingForResponse: null,
-                listening: false
+                listening: false,
+                sentOOOMessage: false,
             
             };
         }
@@ -107,11 +108,14 @@ class ForstaBot {
         }
 
         if(this.outOfOffice(businessInfo)){
-            this.sendMessage(dist, threadId, businessInfo.outOfOfficeMessage);
+            if(!this.threadStatus[threadId].sentOOOMessage) {
+                await this.sendMessage(dist, threadId, businessInfo.outOfOfficeMessage);
+                this.threadStatus[threadId].sentOOOMessage = true;
+            }
+            
             if(businessInfo.action === 'Forward to Tag') {
                 const oooDist = await this.resolveTags(businessInfo.promptTag);
                 await this.handleDistTakeover(msg, oooDist);
-                return;
             }
         }
         
