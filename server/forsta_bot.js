@@ -58,6 +58,19 @@ class ForstaBot {
         console.error('Message Error', e, e.stack);
     }
 
+    fqTag(user) { 
+        return `@${user.tag.slug}:${user.org.slug}`; 
+    }
+
+    fqName(user) {
+        const fqInfo = [user.first_name, user.middle_name, user.last_name]; 
+        return fqInfo.map(s => (s || '').trim()).filter(s => !!s).join(' '); 
+    }
+
+    fqLabel(user) { 
+        return `${this.fqTag(user)} (${this.fqName(user)})`; 
+    }
+
     async onMessage(ev) {
         const received = new Date(ev.data.timestamp);
         const envelope = JSON.parse(ev.data.message.body);
@@ -73,6 +86,7 @@ class ForstaBot {
         const dist = await this.resolveTags(msg.distribution.expression);
         const action = msg.data.action;
         const threadId = msg.threadId;
+        const users = await this.getUsers(dist.userids);
 
         if(!action && !this.threadStatus[threadId]) {            
             this.threadStatus[threadId] = {
@@ -84,29 +98,26 @@ class ForstaBot {
             
             };
         }
+        
+        await this.saveToMessageHistory(received, envelope, msg, attachmentData);
 
         if(this.outOfOffice(businessHours)){
             this.sendMessage(dist, threadId, businessHours.message);
         }
 
-        if(this.threadStatus[threadId] && this.threadStatus[threadId].listening) {
-            this.saveToMessageHistory(received, envelope, msg, attachmentData);
-            return;
-        }
-
         if(this.threadStatus[action] && this.threadStatus[action].waitingForTakeover){
-            this.handleDistTakeover(msg, dist);
+            await this.handleDistTakeover(msg, dist);
             return;
         } else if(this.threadStatus[threadId].waitingForResponse){
-            const validResponse = await this.handleResponse(msg, dist);
+            const validResponse = await this.handleResponse(msg, dist, users);
             if(!validResponse) return;
         }
 
-        if(this.threadStatus[threadId].currentQuestion.type == 'Free Response') {
+        if(this.threadStatus[threadId].currentQuestion.type === 'Free Response') {
             const prompt = this.threadStatus[threadId].currentQuestion.prompt;
             this.threadStatus[threadId].waitingForResponse = true;
             this.sendMessage(dist, threadId, prompt);
-        } else {
+        } else if(!this.threadStatus[threadId].listening) {
             const prompt = this.threadStatus[threadId].currentQuestion.prompt;
             const actions = this.threadStatus[threadId].currentQuestion.responses.map( 
                 (response, index) => { 
@@ -119,28 +130,31 @@ class ForstaBot {
     }
 
     async handleDistTakeover(msg, forwardingDist){
-        let threadId = msg.data.action;
-        let chatUserTagId = this.threadStatus[threadId].waitingForTakeover.userTagId;
-        let distMemberUser = await this.atlas.fetch(`/v1/user/${msg.sender.userId}/`);
-        let chatBotUser = await this.atlas.fetch(`/v1/user/${this.ourId}/`);
-        let newDist = await this.resolveTags(`(<${chatUserTagId}>+<${distMemberUser.tag.id}>+<${chatBotUser.tag.id}>)`);
-        this.sendMessage(
+        const threadId = msg.data.action;
+        const chatUserTagId = this.threadStatus[threadId].waitingForTakeover.userTagId;
+        const distMemberUser = await this.atlas.fetch(`/v1/user/${msg.sender.userId}/`);
+        const chatBotUser = await this.atlas.fetch(`/v1/user/${this.ourId}/`);
+        const newDist = await this.resolveTags(`(<${chatUserTagId}>+<${distMemberUser.tag.id}>+<${chatBotUser.tag.id}>)`);
+        
+        forwardingDist.userids = forwardingDist.userids.filter(id => id != distMemberUser.id);
+
+        await this.sendMessage(
             newDist, 
             msg.data.action, 
             `You are now connected with ${this.fqName(distMemberUser)}`,
-        );
-        this.threadStatus[threadId].waitingForTakeover = false;
-        forwardingDist.userids = forwardingDist.userids.filter(id => id != distMemberUser.id);
-        this.sendResponse(
+        );        
+        await this.sendResponse(
             forwardingDist, 
             this.outgoingThreadId, 
             this.threadStatus[threadId].waitingForTakeover.msgId, 
             `Taken by ${this.fqName(distMemberUser)}`
         );
+
+        this.threadStatus[threadId].waitingForTakeover = false;        
         this.threadStatus[threadId].listening = true;
     }
 
-    async handleResponse(msg, dist){
+    async handleResponse(msg, dist, users){
         let response = this.parseResponse(msg, this.threadStatus[msg.threadId]);  
         if(!response.action){
             this.sendMessage(dist, msg.threadId, `ERROR: response action not configured !`);
@@ -148,9 +162,8 @@ class ForstaBot {
             return;
         }
 
-        const users = await this.getUsers(dist.userids);
         this.threadStatus[msg.threadId].waitingForResponse = false;
-        if(response.action == "Forward to Tag")
+        if(response.action === "Forward to Tag")
         {
             this.sendMessage(
                 dist, 
@@ -177,12 +190,12 @@ class ForstaBot {
             };
             return;
         }
-        else if(response.action == "Forward to Question")
+        else if(response.action === "Forward to Question")
         {
             let questionNumber = Number(response.actionOption.split(' ')[1]);
             this.threadStatus[msg.threadId].currentQuestion = this.threadStatus[msg.threadId].questions[questionNumber-1];
         }
-        else if(response.action == "End of Question Set")
+        else if(response.action === "End of Question Set")
         {
             this.sendMessage(dist, msg.threadId, `End of question set!`);
             this.threadStatus[msg.threadId] = undefined;
@@ -191,15 +204,15 @@ class ForstaBot {
     }
 
     parseResponse(msg){
-        if(this.threadStatus[msg.threadId].currentQuestion.type == 'Free Response'){
+        if(this.threadStatus[msg.threadId].currentQuestion.type === 'Free Response'){
             return this.threadStatus[msg.threadId].currentQuestion.responses[0];
-        }else{
-            let responseNumber = Number(msg.data.action);
-            if(responseNumber > this.threadStatus[msg.threadId].currentQuestion.responses.length - 1 || responseNumber < 0){
-                return undefined;
-            }
-            return this.threadStatus[msg.threadId].currentQuestion.responses[responseNumber];
+        }     
+
+        const responseNumber = Number(msg.data.action);   
+        if(responseNumber > this.threadStatus[msg.threadId].currentQuestion.responses.length - 1 || responseNumber < 0){
+            return undefined;
         }
+        return this.threadStatus[msg.threadId].currentQuestion.responses[responseNumber];
     }
 
     async saveToMessageHistory(received, envelope, message, attachmentData) {
@@ -242,7 +255,7 @@ class ForstaBot {
         });
 
         for (let i = 0; i < attachmentIds.length; i++) {
-            await this.pgStore.addAttachment({  // todo: wrap all adds in a transaction
+            await this.pgStore.addAttachment({
                 id: attachmentIds[i],
                 data: attachmentData[i].data,
                 type: attachmentMeta[i].type,
@@ -255,34 +268,21 @@ class ForstaBot {
     outOfOffice(businessHours){
         if(!businessHours) return false;
 
-        let hoursNow = moment().hours();
-        let minsNow = moment().minutes();
-        let openHours = Number(businessHours.open.split(':')[0]);
-        let openMins = Number(businessHours.open.split(':')[1]);
+        const hoursNow = moment().hours();
+        const minsNow = moment().minutes();
+        const openHours = Number(businessHours.open.split(':')[0]);
+        const openMins = Number(businessHours.open.split(':')[1]);
+        const closeMins = Number(businessHours.close.split(':')[1]);
         let closeHours = Number(businessHours.close.split(':')[0]);
-        let closeMins = Number(businessHours.close.split(':')[1]);
 
         if(openHours > closeHours) closeHours += 24;
-        if( (hoursNow < openHours) || (hoursNow == openHours && minsNow < openMins) ){
+        if( (hoursNow < openHours) || (hoursNow === openHours && minsNow < openMins) ){
             return true;
         }
-        if( (hoursNow > closeHours) || (hoursNow == closeHours && minsNow > closeMins) ){
+        if( (hoursNow > closeHours) || (hoursNow === closeHours && minsNow > closeMins) ){
             return true;
         }
         return false;
-    }
-
-    fqTag(user) { 
-        return `@${user.tag.slug}:${user.org.slug}`; 
-    }
-
-    fqName(user) {
-        const fqInfo = [user.first_name, user.middle_name, user.last_name]; 
-        return fqInfo.map(s => (s || '').trim()).filter(s => !!s).join(' '); 
-    }
-
-    fqLabel(user) { 
-        return `${this.fqTag(user)} (${this.fqName(user)})`; 
     }
 
     async sendMessage(dist, threadId, text){
@@ -294,8 +294,8 @@ class ForstaBot {
         });
     }
 
-    sendResponse(dist, threadId, msgId, text){
-        this.msgSender.send({
+    async sendResponse(dist, threadId, msgId, text){
+        return this.msgSender.send({
             distribution: dist,
             threadId: threadId,
             messageRef: msgId,
@@ -304,7 +304,7 @@ class ForstaBot {
         });
     }
 
-    sendActionMessage(dist, threadId, text, actions, threadTitle){
+    async sendActionMessage(dist, threadId, text, actions, threadTitle){
         const title = threadTitle || '';
         return this.msgSender.send({
             distribution: dist,
