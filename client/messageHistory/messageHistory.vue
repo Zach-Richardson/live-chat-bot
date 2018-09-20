@@ -28,7 +28,7 @@
             <sui-table-header>
                 <sui-table-row>
                     <sui-table-header-cell>
-                        Username
+                        User
                     </sui-table-header-cell>
                     <sui-table-header-cell>
                         Operator
