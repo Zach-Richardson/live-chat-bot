@@ -31,13 +31,10 @@
                         Username
                     </sui-table-header-cell>
                     <sui-table-header-cell>
-                        Email
+                        Operator
                     </sui-table-header-cell>
                     <sui-table-header-cell>
-                        Date
-                    </sui-table-header-cell>
-                    <sui-table-header-cell>
-                        Time
+                        Message
                     </sui-table-header-cell>
                 </sui-table-row>
             </sui-table-header>
@@ -46,10 +43,9 @@
                     class="hover-grey"
                     @click="selectThread(thread)"
                     v-for="message in messageHistory">
+                    <sui-table-cell v-text="message.recipientLabels[0]"></sui-table-cell>
                     <sui-table-cell v-text="message.recipientLabels[1]"></sui-table-cell>
-                    <sui-table-cell v-text="message.recipientLabels[1]"></sui-table-cell>
-                    <sui-table-cell v-text="message.recipientLabels[1]"></sui-table-cell>
-                    <sui-table-cell v-text="message.recipientLabels[1]"></sui-table-cell>
+                    <sui-table-cell v-text="message.payload.data.body.value"></sui-table-cell>
                 </sui-table-row>
             </sui-table-body>
         </sui-table>
