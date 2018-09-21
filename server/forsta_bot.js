@@ -81,7 +81,7 @@ class ForstaBot {
             return;
         }
 
-        const businessHours = await relay.storage.get('live-chat-bot', 'business-hours');
+        const businessInfo = await relay.storage.get('live-chat-bot', 'business-info');
         const questions = await relay.storage.get('live-chat-bot', 'questions');        
         const dist = await this.resolveTags(msg.distribution.expression);
         const action = msg.data.action;
@@ -95,29 +95,42 @@ class ForstaBot {
                 waitingForTakeover: null,
                 waitingForResponse: null,
                 listening: false,
-                responses: []            
+                responses: [],
+                sentOOOMessage: false,
             };
         }
         
         await this.saveToMessageHistory(received, envelope, msg, attachmentData);
 
-        if(this.outOfOffice(businessHours)){
-            this.sendMessage(dist, threadId, businessHours.message);
+        if(this.threadStatus[threadId] && this.threadStatus[threadId].listening) {
+            return;
+        }
+
+        if(this.outOfOffice(businessInfo)){
+            if(this.threadStatus[threadId] && !this.threadStatus[threadId].sentOOOMessage) {
+                await this.sendMessage(dist, threadId, businessInfo.outOfOfficeMessage);
+                this.threadStatus[threadId].sentOOOMessage = true;
+            }
+
+            if(businessInfo.action === 'Forward to Tag') {
+                const oooDist = await this.resolveTags(businessInfo.promptTag);
+                await this.handleDistTakeover(msg, oooDist);
+            }
         }
         
         if(this.threadStatus[action] && this.threadStatus[action].waitingForTakeover){
             await this.handleDistTakeover(msg, dist);
             return;
         } else if(this.threadStatus[threadId].waitingForResponse){
-            const validResponse = await this.handleResponse(msg, dist, users);
+            const validResponse = await this.handleResponse(msg, dist, users, businessInfo);
             if(!validResponse) return;
         }
 
         if(this.threadStatus[threadId].currentQuestion.type === 'Free Response') {
             const prompt = this.threadStatus[threadId].currentQuestion.prompt;
             this.threadStatus[threadId].waitingForResponse = true;
-            this.sendMessage(dist, threadId, prompt);
-        } else if(!this.threadStatus[threadId].listening) {
+            await this.sendMessage(dist, threadId, prompt);
+        } else {
             const prompt = this.threadStatus[threadId].currentQuestion.prompt;
             const actions = this.threadStatus[threadId].currentQuestion.responses.map( 
                 (response, index) => { 
@@ -125,7 +138,7 @@ class ForstaBot {
                 }
             );
             this.threadStatus[threadId].waitingForResponse = true;            
-            this.sendActionMessage(dist, threadId, prompt, actions);
+            await this.sendActionMessage(dist, threadId, prompt, actions);
         }
     }
 
@@ -154,7 +167,7 @@ class ForstaBot {
         this.threadStatus[threadId].listening = true;
     }
 
-    async handleResponse(msg, dist, users){
+    async handleResponse(msg, dist, users, businessInfo){
         const response = this.parseResponse(msg, this.threadStatus[msg.threadId]);
         const noActionError = `ERROR: response action not configured !`;
         const noForwardError = `ERROR: Forwarding distribution does not exist.`;
@@ -172,7 +185,7 @@ class ForstaBot {
             const forwardMessage = this.getForwardMessage(msg);
             const botTagId = users.filter(u => u.id === this.ourId)[0].tag.id;
             const forwardingDist = await this.resolveTags(`(<${response.tagId}>+<${botTagId}>)`);
-            await this.sendMessage( dist, msg.threadId, tagMessage);
+            await this.sendMessage( dist, msg.threadId, businessInfo.forwardMessage);
             
             if(!forwardingDist){
                 await this.sendMessage(dist, msg.threadId, noForwardError);
@@ -283,15 +296,15 @@ class ForstaBot {
         }
     }
 
-    outOfOffice(businessHours){
-        if(!businessHours) return false;
+    outOfOffice(businessInfo){
+        if(!businessInfo) return false;
 
         const hoursNow = moment().hours();
         const minsNow = moment().minutes();
-        const openHours = Number(businessHours.open.split(':')[0]);
-        const openMins = Number(businessHours.open.split(':')[1]);
-        const closeMins = Number(businessHours.close.split(':')[1]);
-        let closeHours = Number(businessHours.close.split(':')[0]);
+        const openHours = Number(businessInfo.open.split(':')[0]);
+        const openMins = Number(businessInfo.open.split(':')[1]);
+        const closeMins = Number(businessInfo.close.split(':')[1]);
+        let closeHours = Number(businessInfo.close.split(':')[0]);
 
         if(openHours > closeHours) closeHours += 24;
         if( (hoursNow < openHours) || (hoursNow === openHours && minsNow < openMins) ){

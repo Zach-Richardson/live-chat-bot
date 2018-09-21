@@ -65,7 +65,7 @@ a:hover{
                     <a>Questions</a>
                 </sui-list-content>
             </sui-list-item>
-            <sui-list-item @click="businessHours()">
+            <sui-list-item @click="businessInfo()">
                 <sui-list-icon 
                     class="hover-white"
                     name="clock" 
@@ -73,7 +73,7 @@ a:hover{
                     vertical-align="middle" 
                     style="color:white" />
                 <sui-list-content>
-                    <a>Business Hours</a>
+                    <a>Business Info</a>
                 </sui-list-content>
             </sui-list-item>
             <sui-list-item @click="messageHistory()">
@@ -151,8 +151,8 @@ module.exports = {
         users: function () {
             this.$router.push({ name: 'users' });
         },
-        businessHours: function () {
-            this.$router.push({ name: 'businessHours' });
+        businessInfo: function () {
+            this.$router.push({ name: 'businessInfo' });
         },
         messageHistory: function () {
             this.$router.push({ name: 'messageHistory' });

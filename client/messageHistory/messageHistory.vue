@@ -28,16 +28,10 @@
             <sui-table-header>
                 <sui-table-row>
                     <sui-table-header-cell>
-                        Username
+                        User
                     </sui-table-header-cell>
                     <sui-table-header-cell>
-                        Email
-                    </sui-table-header-cell>
-                    <sui-table-header-cell>
-                        Date
-                    </sui-table-header-cell>
-                    <sui-table-header-cell>
-                        Time
+                        Operator
                     </sui-table-header-cell>
                 </sui-table-row>
             </sui-table-header>
@@ -46,9 +40,7 @@
                     class="hover-grey"
                     @click="selectThread(thread)"
                     v-for="message in messageHistory">
-                    <sui-table-cell v-text="message.recipientLabels[1]"></sui-table-cell>
-                    <sui-table-cell v-text="message.recipientLabels[1]"></sui-table-cell>
-                    <sui-table-cell v-text="message.recipientLabels[1]"></sui-table-cell>
+                    <sui-table-cell v-text="message.recipientLabels[0]"></sui-table-cell>
                     <sui-table-cell v-text="message.recipientLabels[1]"></sui-table-cell>
                 </sui-table-row>
             </sui-table-body>
@@ -146,6 +138,7 @@ module.exports = {
             util.fetch.call(this, '/api/messages/history/v1?' + q)
             .then(result => {
                 this.messageHistory = result.theJson.messages;
+                console.log(this.messageHistory[1]);
                 this.messageHistory.forEach(m => {
                     m.receivedMoment = moment(m.received);
                     m.receivedText = m.receivedMoment.format('llll');
