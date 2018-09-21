@@ -221,7 +221,7 @@ class ForstaBot {
         responses.forEach(response => {
             forwardMessage = `\n${forwardMessage}\n${response.prompt}\n\t${response.response}`;
         });
-        return `\n${forwardMessage}\nClick the "Connect" button to chat with this user.`;
+        return `\n\n${forwardMessage}\nClick the "Connect" button to chat with this user.`;
     }
 
     parseResponse(msg){
