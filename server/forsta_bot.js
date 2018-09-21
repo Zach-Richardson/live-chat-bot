@@ -219,7 +219,7 @@ class ForstaBot {
         const responses = this.threadStatus[msg.threadId].responses;
         let forwardMessage = `A live chat user is trying to get in touch with you. Here are their responses:\n`;
         responses.forEach(response => {
-            forwardMessage = `${forwardMessage}\n${response.prompt}\n\t${response.response}`;
+            forwardMessage = `\n${forwardMessage}\n${response.prompt}\n\t${response.response}`;
         });
         return forwardMessage;
     }
