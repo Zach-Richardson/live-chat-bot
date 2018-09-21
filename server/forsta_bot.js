@@ -95,8 +95,8 @@ class ForstaBot {
                 waitingForTakeover: null,
                 waitingForResponse: null,
                 listening: false,
+                responses: [],
                 sentOOOMessage: false,
-            
             };
         }
         
@@ -171,7 +171,7 @@ class ForstaBot {
         const response = this.parseResponse(msg, this.threadStatus[msg.threadId]);
         const noActionError = `ERROR: response action not configured !`;
         const noForwardError = `ERROR: Forwarding distribution does not exist.`;
-        const forwardMessage = `A live chat user is trying to get in touch with you. Respond to take over the chat.`;
+        const tagMessage = `A member of our team will be with you shortly.`;
         
         if(!response.action){
             await this.sendMessage(dist, msg.threadId, noActionError);
@@ -182,13 +182,13 @@ class ForstaBot {
         this.threadStatus[msg.threadId].waitingForResponse = false;
 
         if(response.action === "Forward to Tag") {
+            const forwardMessage = this.getForwardMessage(msg);
             const botTagId = users.filter(u => u.id === this.ourId)[0].tag.id;
             const forwardingDist = await this.resolveTags(`(<${response.tagId}>+<${botTagId}>)`);
             await this.sendMessage( dist, msg.threadId, businessInfo.forwardMessage);
             
             if(!forwardingDist){
                 await this.sendMessage(dist, msg.threadId, noForwardError);
-                console.log(noForwardError);
                 return;
             }
 
@@ -197,7 +197,7 @@ class ForstaBot {
                 this.outgoingThreadId, 
                 forwardMessage,
                 [{title:'Connect', action: msg.threadId, color:'blue'}],
-                'Incoming Live Chat Calls'
+                'Live Chat Queue'
             );
 
             this.threadStatus[msg.threadId].waitingForTakeover = {
@@ -215,8 +215,22 @@ class ForstaBot {
         return true;
     }
 
+    getForwardMessage(msg) {
+        const responses = this.threadStatus[msg.threadId].responses;
+        let forwardMessage = `A live chat user is trying to get in touch with you. Here are their responses:\n`;
+        responses.forEach(response => {
+            forwardMessage = `${forwardMessage}\nPrompt: ${response.prompt}\tResponse: ${response.response}`;
+        });
+        return forwardMessage;
+    }
+
     parseResponse(msg){
+        const prompt = this.threadStatus[msg.threadId].currentQuestion.prompt;
         if(this.threadStatus[msg.threadId].currentQuestion.type === 'Free Response'){
+            const responseText = msg.data.body[0].value;
+            this.threadStatus[msg.threadId].responses.push({ 
+                prompt: prompt, response: responseText 
+            });
             return this.threadStatus[msg.threadId].currentQuestion.responses[0];
         }     
 
@@ -224,6 +238,11 @@ class ForstaBot {
         if(responseNumber > this.threadStatus[msg.threadId].currentQuestion.responses.length - 1 || responseNumber < 0){
             return undefined;
         }
+
+        const responseText = this.threadStatus[msg.threadId].currentQuestion.responses[responseNumber].text;
+        this.threadStatus[msg.threadId].responses.push({ 
+            prompt: prompt, response: responseText 
+        });
         return this.threadStatus[msg.threadId].currentQuestion.responses[responseNumber];
     }
 
