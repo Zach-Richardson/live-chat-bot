@@ -171,7 +171,6 @@ class ForstaBot {
         const response = this.parseResponse(msg, this.threadStatus[msg.threadId]);
         const noActionError = `ERROR: response action not configured !`;
         const noForwardError = `ERROR: Forwarding distribution does not exist.`;
-        const tagMessage = `A member of our team will be with you shortly.`;
         
         if(!response.action){
             await this.sendMessage(dist, msg.threadId, noActionError);

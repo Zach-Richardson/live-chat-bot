@@ -79,29 +79,7 @@ div [class*="pull right"] {
                             bigScreen: 'width:90%'})"
                         v-model="businessInfoData.outOfOfficeMessage"
                         @input="checkForChanges()"/>
-                </sui-grid-column>                
-                <sui-grid-column :width="16">                       
-                    <sui-label
-                        pointing="right"
-                        color="teal"
-                        style="vertical-align:middle">Action</sui-label>
-                    <sui-dropdown      
-                        selection
-                        :options="actions"
-                        v-model="businessInfoData.action"
-                        @input="checkForChanges()"/>
-                    <span v-if="businessInfoData.action==='Forward to Tag'">  
-                        <sui-icon
-                            name="arrow right"
-                            size="large" />                 
-                        <sui-dropdown      
-                            selection
-                            placeholder="Tag"
-                            :options="tagsForDropdown"
-                            v-model="businessInfoData.promptTag"
-                            @input="checkForChanges()"/>
-                    </span>
-                </sui-grid-column>
+                </sui-grid-column>              
             </sui-grid-row>
             <sui-grid-row>
                 <sui-grid-column>

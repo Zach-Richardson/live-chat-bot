@@ -97,7 +97,7 @@ div [class*="pull right"] {
                                     selection
                                     :options="questionActions"
                                     v-model="response.action"
-                                    @input="checkForChanges()"/>
+                                    @input="updateAction(response)"/>
                                 <sui-icon
                                     name="arrow right"
                                     size="large" />
@@ -110,11 +110,10 @@ div [class*="pull right"] {
                                         @input="checkForChanges()"/>
                                 </span>
                                 <span v-if="response.action==='Forward to Tag'">
-                                    <sui-dropdown      
-                                        selection
-                                        placeholder="Tag"
-                                        :options="tagsForDropdown"
-                                        v-model="response.tagId"
+                                    <sui-input   
+                                        placeholder="tag"
+                                        :value="response.actionOption"
+                                        v-model="response.actionOption"
                                         @input="updateTagData(response)"/>
                                 </span>                                
                                 <sui-input
@@ -128,6 +127,9 @@ div [class*="pull right"] {
                                     icon="trash alternate outline"
                                     style="vertical-align:middle"
                                     @click="deleteResponse(question, response)" />
+                                <p v-if="response.invalidTag" style="color: #ff0000;">
+                                    The tag "{{response.actionOption}}" does not exist in your organization.
+                                </p>
                             </sui-grid-column>
                         </sui-grid-row>
                     </sui-grid>
@@ -155,7 +157,7 @@ div [class*="pull right"] {
                                     selection
                                     :options="questionActions"
                                     v-model="question.responses[0].action"
-                                    @input="checkForChanges()"/>
+                                    @input="updateAction(question.responses[0].action)"/>
                                 <sui-icon
                                     name="arrow right"
                                     size="large" />
@@ -168,11 +170,10 @@ div [class*="pull right"] {
                                         @input="checkForChanges()"/>
                                 </span>
                                 <span v-if="question.responses[0].action==='Forward to Tag'">
-                                    <sui-dropdown      
-                                        selection
-                                        placeholder="Tag"
-                                        :options="tagsForDropdown"
-                                        v-model="question.responses[0].tagId"
+                                    <sui-input   
+                                        placeholder="tag"
+                                        :value="question.responses[0].actionOption"
+                                        v-model="question.responses[0].actionOption"
                                         @input="updateTagData(question.responses[0])"/>
                                 </span>
                             </sui-list-content>
@@ -267,12 +268,6 @@ module.exports = {
             util.fetch.call(this, '/api/tags/', {method: 'get'})
             .then(result => {
                 this.tags = result.theJson.tags;
-                this.tags.forEach( (tag, idx) => {
-                    this.tagsForDropdown.push({
-                        text: tag.slug,
-                        value: tag.id
-                    });
-                });
             });
         },
         newQuestion: function () {
@@ -285,14 +280,14 @@ module.exports = {
                         action: 'Forward to Question',
                         actionOption: "Question 1",
                         tagId: null,
-                        color: '#0000ff'
+                        color: '#B9D3EE'
                     },
                     {
                         text: "No",
                         action: 'Forward to Question',
                         actionOption: "Question 1",
                         tagId: null,
-                        color: '#ff0000'
+                        color: '#F08080'
                     }
                 ]
             });
@@ -317,7 +312,6 @@ module.exports = {
             this.nextRoute();
         },
         saveData: function() {
-            console.log(this.questions);
             util.fetch('/api/questions/', {
                 method:'post',
                 body: { questions: this.questions }
@@ -325,8 +319,19 @@ module.exports = {
             this.changesMade = false;
             this.questionsOriginal = JSON.stringify(this.questions);
         },
+        updateAction: function(response) {
+            response.actionOption = '';
+            if(response.action === 'Forward to Question') {
+                response.actionOption = 'Question 1';
+            }
+            this.checkForChanges();
+        },
         updateTagData: function(response) {
-            response.actionOption = this.tags.find(t => t.id === response.tagId).slug;
+            const tag = this.tags.find(t => t.slug === response.actionOption)
+            response.invalidTag = !tag;
+            if(!response.invalidTag) {
+                response.tagId = tag.id;
+            }
             this.checkForChanges();
         }
     },
@@ -349,7 +354,6 @@ module.exports = {
             showingSaveChangesModal: false,
             nextRoute: null,
             tags: [],
-            tagsForDropdown: [],
             questionActions: [
                 {
                     text: "Forward to Question",

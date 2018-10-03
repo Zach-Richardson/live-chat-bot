@@ -288,14 +288,14 @@ class QuestionsAPIV1 extends APIHandler {
                     type: "Multiple Choice",
                     editing: false,
                     hovering: false,
-                    color: 'red',
+                    color: '#F08080',
                     responses: [
                         {
                             text: "Yes",
                             action: "Forward to Question",
                             actionOption: "Question 1",
                             distId: null,
-                            color: 'blue',
+                            color: '#B9D3EE',
                             editing: false
                         },
                         {
@@ -303,7 +303,7 @@ class QuestionsAPIV1 extends APIHandler {
                             action: "Forward to Question",
                             actionOption: "Question 1",
                             distId: null,
-                            color: 'red',
+                            color: '#F08080',
                             editing: false
                         }
                     ]
@@ -363,7 +363,6 @@ class TagsAPIV1 extends APIHandler {
 
     async onGet(req, res){
         let tags = (await this.server.bot.atlas.fetch('/v1/tag-pick/')).results;
-        tags = tags.filter(t => t.created_by);
         res.status(200).json({tags});
     }
 
