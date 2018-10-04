@@ -37,6 +37,16 @@ div [class*="pull right"] {
                         color="red"
                         icon="trash"
                         @click="deleteQuestion(question)" />
+                    <sui-button
+                        class="pull right"
+                        color="grey"
+                        icon="arrow down"
+                        @click="moveQuestionDown(question)" />
+                    <sui-button
+                        class="pull right"
+                        color="grey"
+                        icon="arrow up"
+                        @click="moveQuestionUp(question)" />
                 </sui-grid-column>
             </sui-grid-row>
 
@@ -238,7 +248,7 @@ module.exports = {
     methods: {
         checkForChanges(){
             if(this.changesMade) return;
-            if(JSON.stringify(this.questions) != this.questionsOriginal){
+            if(JSON.stringify(this.questions) !== this.questionsOriginal){
                 this.changesMade = true;
             }
         },
@@ -269,6 +279,23 @@ module.exports = {
             .then(result => {
                 this.tags = result.theJson.tags;
             });
+        },
+        moveQuestionDown: function(question) {
+            const i = this.questions.indexOf(question);
+            if(i >= this.questions.length - 1) return;            
+            const temp = this.questions[i+1];
+            this.questions.splice(i+1, 1, question);
+            this.questions.splice(i, 1, temp);
+            this.checkForChanges();
+        },
+        moveQuestionUp: function(question) {
+            const i = this.questions.indexOf(question);
+            if(i <= 0) return;
+            const temp = this.questions[i-1];
+            this.questions.splice(i-1, 1, question);
+            this.questions.splice(i, 1, temp);
+            this.checkForChanges();
+
         },
         newQuestion: function () {
             this.questions.push({
