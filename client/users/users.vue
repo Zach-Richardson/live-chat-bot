@@ -10,15 +10,14 @@ div.listgap {
         <div class="ui container center aligned">
             <div class="ui basic segment huge">
                 <h1 class="ui header">
-                    <i class="large circular setting icon"></i>
-                    Live Chat Bot Settings
+                    <i class="large user icon"></i>
+                    Authorized Site Users
                 </h1>
             </div>
             <div class="ui centered grid">
                 <div class="ui nine wide column basic segment left aligned b1" 
                     :class="{loading: loading}" 
                     style="margin-top:-1em;">
-                    <h3 style="margin-bottom: 3px;">Authorized Site Users</h3>
                     <div class="ui list listgap">
                         <div v-for="a in admins" :key="a.id" class="item">
                             <a 
@@ -129,7 +128,6 @@ module.exports = {
         }
     },
     mounted: function() {
-        util.checkPrerequisites.call(this);
         this.getAdmins();
         this.interval = setInterval(() => this.getAdmins(), REFRESH_POLL_RATE); 
     },

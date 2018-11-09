@@ -1,9 +1,9 @@
 {
-    "name": "Forsta Compliance Monitor",
-    "description": "A Forsta 'monitor' bot that monitors all message traffic in an organization to flag messages with noteworthy content.",
-    "repository": "https://github.com/ForstaLabs/compliance-monitor.git",
+    "name": "Forsta Live Chat",
+    "description": "A Forsta chat bot that facilitates communication with incoming customers.",
+    "repository": "https://github.com/ForstaLabs/live-chat-bot.git",
     "logo": "https://raw.githubusercontent.com/ForstaLabs/compliance-monitor/master/images/forsta-logo.svg?sanitize=true",
-    "keywords": ["forsta", "messaging", "bot", "compliance", "monitor"],
+    "keywords": ["forsta", "messaging", "bot", "live", "chat"],
     "website": "https://forsta.io",
     "addons": ["heroku-postgresql"],
     "env": {
@@ -13,7 +13,7 @@
         "value": "postgres"
       },
       "HEROKU_FORCE_SSL": {
-        "description": "Require that all communications with the compliance monitor be via SSL.",
+        "description": "Require that all communications with the live chat bot be via SSL.",
         "required": true,
         "value": "yes"
       }

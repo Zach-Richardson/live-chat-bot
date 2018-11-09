@@ -5,6 +5,7 @@ SEMANTIC := semantic/dist/.semantic.build
 GRUNT := dist/.grunt.build
 LINT := .lint.pass
 BUILD := dist/build.json
+DOCKER_DB_NAME := live_chat_db$(shell pwd | sed 's/\//_/g')
 
 export NO_MINIFY ?= 1
 
@@ -14,6 +15,11 @@ grunt: $(GRUNT)
 
 NPATH := $(shell pwd)/node_modules/.bin
 SRC := $(shell find client html images stylesheets server -type f)
+
+PG_SITE := https://get.enterprisedb.com/postgresql/
+PG_BIN_LINUX := postgresql-10.3-3-linux-x64-binaries.tar.gz
+PG_BIN_WINDOWS := postgresql-10.3-3-windows-x64-binaries.zip
+PG_BIN_DARWIN := postgresql-10.3-3-osx-binaries.zip
 
 ########################################################
 # Building & cleaning targets
@@ -57,6 +63,19 @@ realclean: clean
 build: $(BUILD)
 
 lint: $(LINT)
+
+docker-db-run:
+	if docker inspect $(DOCKER_DB_NAME) >/dev/null 2>&1; then \
+		echo "Starting existing database"; \
+		docker start --attach $(DOCKER_DB_NAME); \
+	else \
+		echo "Creating NEW database"; \
+		docker run -p 5432:5432 --name $(DOCKER_DB_NAME) postgres:10; \
+	fi
+
+docker-db-clean:
+	docker kill $(DOCKER_DB_NAME) 2>/dev/null || exit 0
+	docker rm -f $(DOCKER_DB_NAME) 2>/dev/null || exit 0
 
 
 

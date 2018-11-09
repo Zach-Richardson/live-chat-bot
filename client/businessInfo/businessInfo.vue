@@ -7,6 +7,11 @@ div [class*="pull right"] {
   float: right;
    margin-right: 0.25em;
 }
+.flexbox {
+    display: flex;
+    flex: 1;
+    margin-right:0.5em;
+}
 </style>
 
 <template lang="html">
@@ -14,7 +19,31 @@ div [class*="pull right"] {
 
         <div class="ui basic segment" style="padding-top:5%">
             <h2 class="ui header">
-                Business Hours
+                Distribution Forwarding
+            </h2>
+        </div>
+
+        <sui-divider style="margin-top:5px"/>
+
+        <sui-grid dividend="vertically">            
+            <sui-grid-row>
+                <sui-grid-column :width="16"> 
+                    <sui-label
+                        color="teal"
+                        pointing="right">Message</sui-label>                     
+                    <sui-input 
+                        :style="$mq | mq({
+                            smallScreen: 'width:90%',
+                            bigScreen: 'width:90%'})"
+                        v-model="businessInfoData.forwardMessage"
+                        @input="checkForChanges()"/>
+                </sui-grid-column>  
+            </sui-grid-row>
+        </sui-grid>
+
+        <div class="ui basic segment" style="padding-top:5%">
+            <h2 class="ui header">
+                After Hours
             </h2>
         </div>
 
@@ -25,33 +54,32 @@ div [class*="pull right"] {
                 <sui-grid-column :width="16">
                     <sui-label 
                         color="teal"
-                        pointing="right">Open:</sui-label>
+                        pointing="right">Open</sui-label>
                     <sui-input 
                         format="HH:MM:AM"
-                        v-model="businessHoursData.open"
+                        v-model="businessInfoData.open"
                         type="time"
                         @input="checkForChanges()"/>
-                    &nbsp;&nbsp;&nbsp;&nbsp;
                     <sui-label
                         color="teal"
-                        pointing="right">Close:</sui-label>
+                        pointing="right">Close</sui-label>
                     <sui-input 
                         format="HH:MM:AM"
-                        v-model="businessHoursData.close"
+                        v-model="businessInfoData.close"
                         type="time"
+                        @input="checkForChanges()"/>   
+                </sui-grid-column>     
+                <sui-grid-column :width="16"> 
+                    <sui-label
+                        color="teal"
+                        pointing="right">Message</sui-label>                     
+                    <sui-input 
+                        :style="$mq | mq({
+                            smallScreen: 'width:90%',
+                            bigScreen: 'width:90%'})"
+                        v-model="businessInfoData.outOfOfficeMessage"
                         @input="checkForChanges()"/>
-                </sui-grid-column>                
-            </sui-grid-row>
-            <sui-grid-row>
-                <sui-grid-column>
-                    <div class="ui form field">
-                        <label>Out of Office Message</label>
-                        <textarea 
-                        rows="2"
-                        v-model="businessHoursData.message"
-                        @input="checkForChanges()"></textarea>
-                    </div>
-                </sui-grid-column>
+                </sui-grid-column>              
             </sui-grid-row>
             <sui-grid-row>
                 <sui-grid-column>
@@ -106,15 +134,27 @@ module.exports = {
     methods: {
         checkForChanges: function() {
             if(this.changesMade) return;
-            if(JSON.stringify(this.businessHoursData) != this.businessHoursDataOriginal){
+            if(JSON.stringify(this.businessInfoData) !== this.businessInfoDataOriginal){
                 this.changesMade = true;
             }
         },
         loadData: function() {
-            util.fetch('/api/business-hours/', {method:'get'})
+            util.fetch('/api/business-info/', {method:'get'})
             .then( res => {
-                this.businessHoursData = res.theJson;
-                this.businessHoursDataOriginal = JSON.stringify(res.theJson);
+                this.businessInfoData = res.theJson;
+                this.businessInfoDataOriginal = JSON.stringify(res.theJson);
+            });
+
+
+            util.fetch.call(this, '/api/tags/', {method: 'get'})
+            .then(result => {
+                this.tags = result.theJson.tags;
+                this.tags.forEach( (tag, idx) => {
+                    this.tagsForDropdown.push({
+                        text: tag.slug,
+                        value: tag.id
+                    });
+                });
             });
         },
         saveAndContinue: function() {
@@ -122,17 +162,17 @@ module.exports = {
             this.nextRoute();
         },
         saveData: function() {
-            util.fetch('/api/business-hours/', 
+            util.fetch('/api/business-info/', 
             {
                 method:'post', 
                 body:
                 { 
-                    businessHoursData: this.businessHoursData 
+                    businessInfoData: this.businessInfoData 
                 }
             });
-            this.businessHoursDataOriginal = JSON.stringify(this.businessHoursData);
+            this.businessInfoDataOriginal = JSON.stringify(this.businessInfoData);
             this.changesMade = false;
-        },
+        }
     },
     beforeRouteLeave: function(to, from, next){ 
         if(this.changesMade){
@@ -145,11 +185,23 @@ module.exports = {
     },
     data: () => ({ 
         global: shared.state,
-        businessHoursData: {},
-        businessHoursDataOriginal: {},
+        businessInfoData: {},
+        businessInfoDataOriginal: {},
         changesMade: false,
         showingSaveChangesModal: false,
-        nextRoute: null
+        nextRoute: null,
+        tags: [],
+        tagsForDropdown: [],
+        actions: [
+            {
+                text: 'Forward to Questions',
+                value: 'Forward to Questions'
+            },
+            {
+                text: 'Forward to Tag',
+                value: 'Forward to Tag'
+            }
+        ]
     }),
 }
 </script>

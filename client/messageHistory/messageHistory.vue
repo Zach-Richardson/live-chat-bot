@@ -17,8 +17,8 @@
             <sui-dropdown-menu>
             <sui-dropdown-item @click="sortByUser(messageHistory, false)">User (A-Z)</sui-dropdown-item>
             <sui-dropdown-item @click="sortByUser(messageHistory, true)">User (Z-A)</sui-dropdown-item>
-            <sui-dropdown-item @click="sortByDate(messageHistory, false)">Date (Oldest First)</sui-dropdown-item>
-            <sui-dropdown-item @click="sortByDate(messageHistory, true)">Date (Newest First)</sui-dropdown-item>
+            <sui-dropdown-item @click="sortByDate(messageHistory, false)">Date (Newest)</sui-dropdown-item>
+            <sui-dropdown-item @click="sortByDate(messageHistory, true)">Date (Oldest)</sui-dropdown-item>
             </sui-dropdown-menu>
         </sui-dropdown>
 
@@ -28,16 +28,10 @@
             <sui-table-header>
                 <sui-table-row>
                     <sui-table-header-cell>
-                        Username
+                        User
                     </sui-table-header-cell>
                     <sui-table-header-cell>
-                        Email
-                    </sui-table-header-cell>
-                    <sui-table-header-cell>
-                        Date
-                    </sui-table-header-cell>
-                    <sui-table-header-cell>
-                        Time
+                        Operator
                     </sui-table-header-cell>
                 </sui-table-row>
             </sui-table-header>
@@ -45,11 +39,9 @@
                 <sui-table-row
                     class="hover-grey"
                     @click="selectThread(thread)"
-                    v-for="thread in messageHistory">
-                    <sui-table-cell v-text="thread.user.slug"></sui-table-cell>
-                    <sui-table-cell v-text="thread.user.email"></sui-table-cell>
-                    <sui-table-cell v-text="thread.threadDate"></sui-table-cell>
-                    <sui-table-cell v-text="thread.threadTime"></sui-table-cell>
+                    v-for="message in messageHistory">
+                    <sui-table-cell v-text="message.recipientLabels[0]"></sui-table-cell>
+                    <sui-table-cell v-text="message.recipientLabels[1]"></sui-table-cell>
                 </sui-table-row>
             </sui-table-body>
         </sui-table>
@@ -107,21 +99,60 @@
 
 <script>
 'use strict'
-const fileSaver = require('file-saver');
 const csvStringify = require('csv-stringify');
+const fileSaver = require('file-saver');
+const _ = require('lodash');
 const moment = require('moment');
 module.exports = {
-    mounted: function() {
-        this.loadData();
+    data: () => ({ 
+        global: shared.state,
+        backgroundInterval: null,
+        enteredText: '',
+        showDist: {},
+        hideBody: {},
+        fullCount: 0,
+        offset: 0,
+        ascending: 'no',
+        messageHistory: [],
+        selectedThread: null
+    }),
+    computed: {
+        filters: function() {
+            let filts = _.mapValues(this.$route.query, (v, k) => { 
+                return { 
+                    value: v, 
+                    presentation: present(k, v)
+                };
+            });
+            return filts;
+        },
+        queryString: function() {
+            let q = Object.keys(this.filters).map(k => `${k}=${this.filters[k].value.split('|')[0]}`);
+            return q.join('&').replace("'","");
+        }
+    },
+    watch: {
+        queryString: function(val) {
+            this.getMessages();
+        }
     },
     methods: {
-        loadData: function() {
-            util.fetch('/api/message-history', {method:'get'})
-            .then( res => {
-                this.sortByDate(res.theJson);
+        getMessages: function() {
+            const q = this.queryString;
+            util.fetch.call(this, '/api/messages/history/v1?' + q)
+            .then(result => {
+                this.messageHistory = result.theJson.messages;
+                console.log(this.messageHistory[1]);
+                this.messageHistory.forEach(m => {
+                    m.receivedMoment = moment(m.received);
+                    m.receivedText = m.receivedMoment.format('llll');
+                    if (m.recipientIds.length <= 5 && !(m.messageId in this.showDist)) {
+                        this.$set(this.showDist, m.messageId, true);
+                    }
+                });
             });
         },
-        sortByDate(messageHistory, descending){
+        sortByDate: function(messageHistory, descending) {
             let sorted = [];
             for(let threadId in messageHistory){
                 sorted.push(messageHistory[threadId]);
@@ -138,7 +169,7 @@ module.exports = {
             });
             this.messageHistory = sorted;
         },
-        sortByUser(messageHistory, descending){
+        sortByUser: function(messageHistory, descending) {
             let sorted = [];
             for(let threadId in messageHistory){
                 sorted.push(messageHistory[threadId]);
@@ -156,7 +187,7 @@ module.exports = {
             });
             this.messageHistory = sorted;
         },
-        saveAllThreadsToCSV(){
+        saveAllThreadsToCSV: function() {
             let formattedHistory = [];
             const threadTableHeader = ['Date Created', 'Time Created', 'User Name', 'User Email'];
             const messageTableHeader = ['Message', 'Action', 'Time'];
@@ -172,7 +203,7 @@ module.exports = {
                 fileSaver.saveAs(new Blob([output]), `MessageHistory-${moment().format('MM/DD/YYYY')}.csv`);
             });
         },
-        saveCurrentThreadToCSV(){
+        saveCurrentThreadToCSV: function() {
             if(!this.selectedThread) return;
             let formattedHistory = [];
             let thread = this.selectedThread;
@@ -192,9 +223,8 @@ module.exports = {
             this.selectedThread = thread;
         }
     },
-    data: () => ({ 
-        messageHistory: [],
-        selectedThread: null
-    })
+    mounted: function() {
+        this.getMessages();
+    }
 }       
 </script>

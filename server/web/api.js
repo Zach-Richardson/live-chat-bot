@@ -288,14 +288,14 @@ class QuestionsAPIV1 extends APIHandler {
                     type: "Multiple Choice",
                     editing: false,
                     hovering: false,
-                    color: 'red',
+                    color: '#F08080',
                     responses: [
                         {
                             text: "Yes",
                             action: "Forward to Question",
                             actionOption: "Question 1",
                             distId: null,
-                            color: 'blue',
+                            color: '#B9D3EE',
                             editing: false
                         },
                         {
@@ -303,7 +303,7 @@ class QuestionsAPIV1 extends APIHandler {
                             action: "Forward to Question",
                             actionOption: "Question 1",
                             distId: null,
-                            color: 'red',
+                            color: '#F08080',
                             editing: false
                         }
                     ]
@@ -323,7 +323,7 @@ class QuestionsAPIV1 extends APIHandler {
 
 }
 
-class BusinessHoursAPIV1 extends APIHandler {
+class BusinessInfoAPIV1 extends APIHandler {
 
     constructor(options) {
         super(options);
@@ -332,49 +332,24 @@ class BusinessHoursAPIV1 extends APIHandler {
     }
 
     async onGet(req, res){
-        let businessHoursData = await relay.storage.get('live-chat-bot', 'business-hours');
-        if(!businessHoursData){
-            businessHoursData = {
+        let businessInfoData = await relay.storage.get('live-chat-bot', 'business-info');
+        if(!businessInfoData){
+            businessInfoData = {
                 open: '08:00',
                 close: '20:00',
-                message: 'This is the default out of office hours message.'
+                outOfOfficeMessage: 'This is the default out of office hours message.',
+                forwardMessage: 'This is the default forward to distribution message.',
+                action: 'Forward to Tag'
             };
-            relay.storage.set('live-chat-bot', 'business-hours', businessHoursData);
+            relay.storage.set('live-chat-bot', 'business-info', businessInfoData);
         }
-        res.status(200).json(businessHoursData);
+        res.status(200).json(businessInfoData);
     }
 
     async onPost(req, res) {
-        let businessHours = req.body.businessHoursData;
-        relay.storage.set('live-chat-bot', 'business-hours', businessHours);
+        let businessInfo = req.body.businessInfoData;
+        relay.storage.set('live-chat-bot', 'business-info', businessInfo);
         res.status(200);
-    }
-
-}
-
-class MessageHistoryAPIV1 extends APIHandler {
-
-    constructor(options) {
-        super(options);
-        this.router.get('/*', this.asyncRoute(this.onGet, false));
-    }
-
-    async onGet(req, res){
-        let messageHistory = await relay.storage.get('live-chat-bot', 'message-history');
-        if(!messageHistory){
-            messageHistory = {
-                date: 'MM/DD/YYYY',
-                messages: [{
-                    user: {slug: "", id: ""},
-                    date: "",
-                    time: "",
-                    prompt:"No messages found in history!",
-                    response:"No messages found in history!",
-                    action:"None"
-                }]
-            };
-        }
-        res.status(200).json(messageHistory);
     }
 
 }
@@ -388,7 +363,6 @@ class TagsAPIV1 extends APIHandler {
 
     async onGet(req, res){
         let tags = (await this.server.bot.atlas.fetch('/v1/tag-pick/')).results;
-        tags = tags.filter(t => t.created_by);
         res.status(200).json({tags});
     }
 
@@ -399,7 +373,6 @@ module.exports = {
     OnboardAPIV1,
     AuthenticationAPIV1,
     QuestionsAPIV1,
-    BusinessHoursAPIV1,
-    MessageHistoryAPIV1,
+    BusinessInfoAPIV1,
     TagsAPIV1
 };
