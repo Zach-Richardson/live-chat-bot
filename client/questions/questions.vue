@@ -92,9 +92,6 @@ div [class*="pull right"] {
                                     color="teal"
                                     style="vertical-align:middle">Choice</sui-label>
                                 <sui-input
-                                    :style="$mq | mq({
-                                            smallScreen: 'width:40%',
-                                            bigScreen: 'width:30%'})"
                                     class="flexbox"
                                     :style="$mq | mq({
                                             smallScreen: 'width:80%',
@@ -151,7 +148,6 @@ div [class*="pull right"] {
                     color="green"
                     content="Add Choice"
                     @click="newResponse(question)"
-                    content="New Response"
                     v-if="question.type==='Multiple Choice'"/>
                 </sui-grid-column>
             </sui-grid-row>

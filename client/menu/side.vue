@@ -54,6 +54,28 @@ a:hover{
             divided 
             relaxed 
             size="huge" style="padding:7px; margin-top:50px">
+            <sui-list-item @click="chat()">
+                <sui-list-icon 
+                    class="hover-white"
+                    name="comments" 
+                    size="large" 
+                    vertical-align="middle" 
+                    style="color:white" />
+                <sui-list-content>
+                    <a>Chat</a>
+                </sui-list-content>
+            </sui-list-item>
+            <sui-list-item @click="archive()">
+                <sui-list-icon 
+                    class="hover-white"
+                    name="archive" 
+                    size="large" 
+                    vertical-align="middle" 
+                    style="color:white" />
+                <sui-list-content>
+                    <a>Archive</a>
+                </sui-list-content>
+            </sui-list-item>
             <sui-list-item @click="questions()">
                 <sui-list-icon 
                     class="hover-white"
@@ -74,17 +96,6 @@ a:hover{
                     style="color:white" />
                 <sui-list-content>
                     <a>Business Info</a>
-                </sui-list-content>
-            </sui-list-item>
-            <sui-list-item @click="messageHistory()">
-                <sui-list-icon 
-                    class="hover-white"
-                    name="archive" 
-                    size="large" 
-                    vertical-align="middle" 
-                    style="color:white" />
-                <sui-list-content>
-                    <a>Message History</a>
                 </sui-list-content>
             </sui-list-item>
             <sui-list-item @click="users()">
@@ -142,21 +153,24 @@ module.exports = {
         showingSignOutModal: false
     }),
     methods: {
-        logout: function () {
-            this.global.apiToken = null;
+        chat: function () {
+            this.$router.push({ name: 'chat' });
+        },
+        archive: function () {
+            this.$router.push({ name: 'archive' });
         },
         questions: function () {
             this.$router.push({ name: 'questions' });
         },
-        users: function () {
-            this.$router.push({ name: 'users' });
-        },
         businessInfo: function () {
             this.$router.push({ name: 'businessInfo' });
         },
-        messageHistory: function () {
-            this.$router.push({ name: 'messageHistory' });
-        }
+        users: function () {
+            this.$router.push({ name: 'users' });
+        },
+        logout: function () {
+            this.global.apiToken = null;
+        },
     }
 }
 </script>
