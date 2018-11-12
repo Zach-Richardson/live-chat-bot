@@ -139,8 +139,12 @@ module.exports = {
     methods: {
         getMessages: function() {
             const q = this.queryString;
+            console.log('queryString : ');
+            console.log(q);
             util.fetch.call(this, '/api/messages/history/v1?' + q)
             .then(result => {
+                console.log('fetch results /api/messages/history');
+                console.log(result);
                 this.messageHistory = result.theJson.messages;
                 console.log(this.messageHistory[1]);
                 this.messageHistory.forEach(m => {

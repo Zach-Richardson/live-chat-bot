@@ -79,7 +79,7 @@ a:hover{
             <sui-list-item @click="questions()">
                 <sui-list-icon 
                     class="hover-white"
-                    name="comments" 
+                    name="sitemap" 
                     size="large" 
                     vertical-align="middle" 
                     style="color:white" />

@@ -44,15 +44,19 @@ a:hover{
                     <i class="large user icon"></i>
                     <i class="dropdown icon"></i>
                     <div class="menu left">
+                        <div class="item" @click="chat">
+                            <i class="comment icon tiny"></i> Chat 
+                        </div>
+                        <div class="item" @click="archive">
+                            <i class="archive icon tiny"></i> Archive 
+                        </div>
                         <div class="item" @click="questions">
-                            <i class="comment alternate outline icon tiny"></i> Questions 
+                            <i class="sitemap icon tiny"></i> Questions 
                         </div>
                         <div class="item" @click="businessInfo">
                             <i class="clock icon tiny"></i> Business Info 
                         </div>
-                        <div class="item" @click="messageHistory">
-                            <i class="archive icon tiny"></i> Message History 
-                        </div>
+                        
                         <div class="item" @click="users">
                             <i class="user icon tiny"></i> Users
                         </div>
@@ -104,18 +108,23 @@ module.exports = {
             this.global.apiToken = null;
             this.$router.push({ name: 'loginTag' })
         },
+        chat: function () {
+            this.$router.push({ name: 'chat' });
+        },
+        archive: function () {
+            this.$router.push({ name: 'archive' });
+        },
         questions: function () {
             this.$router.push({ name: 'questions' });
+        },
+        businessInfo: function () {
+            this.$router.push({ name: 'businessInfo' });
         },
         users: function () {
             this.$router.push({ name: 'users' });
         },
-        businessHours: function () {
-            this.$router.push({ name: 'businessInfo' });
-        },
-        messageHistory: function () {
-            this.$router.push({ name: 'messageHistory' });
-        }
+        
+        
     }
 }
 </script>

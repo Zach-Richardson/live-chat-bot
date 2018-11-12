@@ -88,7 +88,9 @@ class ForstaBot {
         const threadId = msg.threadId;
         const users = await this.getUsers(dist.userids);
 
-        if(!action && !this.threadStatus[threadId]) {            
+        let threadStatus = this.threadStatus[threadId];
+
+        if(!action && !threadStatus) {            
             this.threadStatus[threadId] = {
                 questions,
                 currentQuestion: questions[0],
@@ -98,18 +100,21 @@ class ForstaBot {
                 responses: [],
                 sentOOOMessage: false,
             };
+            threadStatus = this.threadStatus[threadId];
         }
         
-        await this.saveToMessageHistory(received, envelope, msg, attachmentData);
+        this.saveToMessageHistory(received, envelope, msg, attachmentData);
 
-        if(this.threadStatus[threadId] && this.threadStatus[threadId].listening) {
+        //if the live chat bot is just recording messages, return with no response
+        if(threadStatus && threadStatus.listening) {
             return;
         }
 
+        //if we are outside of business hours send the out of office message
         if(this.outOfOffice(businessInfo)){
-            if(this.threadStatus[threadId] && !this.threadStatus[threadId].sentOOOMessage) {
+            if(threadStatus && threadStatus.sentOOOMessage) {
                 await this.sendMessage(dist, threadId, businessInfo.outOfOfficeMessage);
-                this.threadStatus[threadId].sentOOOMessage = true;
+                threadStatus.sentOOOMessage = true;
             }
 
             if(businessInfo.action === 'Forward to Tag') {
@@ -118,21 +123,22 @@ class ForstaBot {
             }
         }
         
-        if(this.threadStatus[action] && this.threadStatus[action].waitingForTakeover){
+        if(threadStatus && threadStatus.waitingForTakeover){
             await this.handleDistTakeover(msg, dist);
             return;
-        } else if(this.threadStatus[threadId].waitingForResponse){
+        } else if(threadStatus.waitingForResponse){
             const validResponse = await this.handleResponse(msg, dist, users, businessInfo);
             if(!validResponse) return;
         }
 
-        if(this.threadStatus[threadId].currentQuestion.type === 'Free Response') {
-            const prompt = this.threadStatus[threadId].currentQuestion.prompt;
-            this.threadStatus[threadId].waitingForResponse = true;
+        const currentQuestion = threadStatus.currentQuestion;
+        if(currentQuestion.type === 'Free Response') {
+            const prompt = currentQuestion.prompt;
+            threadStatus.waitingForResponse = true;
             await this.sendMessage(dist, threadId, prompt);
         } else {
-            const prompt = this.threadStatus[threadId].currentQuestion.prompt;
-            const actions = this.threadStatus[threadId].currentQuestion.responses.map( 
+            const prompt = currentQuestion.prompt;
+            const actions = currentQuestion.responses.map( 
                 (response, index) => { 
                     return { title: response.text, color: response.color, action: index };
                 }
@@ -168,7 +174,8 @@ class ForstaBot {
     }
 
     async handleResponse(msg, dist, users, businessInfo){
-        const response = this.parseResponse(msg, this.threadStatus[msg.threadId]);
+        const threadStatus = this.threadStatus[msg.threadId];
+        const response = this.parseResponse(msg, threadStatus);
         const noActionError = `ERROR: response action not configured !`;
         const noForwardError = `ERROR: Forwarding distribution does not exist.`;
         
@@ -178,7 +185,7 @@ class ForstaBot {
             return;
         }
 
-        this.threadStatus[msg.threadId].waitingForResponse = false;
+        threadStatus.waitingForResponse = false;
 
         if(response.action === "Forward to Tag") {
             const forwardMessage = this.getForwardMessage(msg);
@@ -199,16 +206,14 @@ class ForstaBot {
                 'Live Chat Queue'
             );
 
-            this.threadStatus[msg.threadId].waitingForTakeover = {
+            threadStatus.waitingForTakeover = {
                 userTagId: users.filter(u => u.id !== this.ourId)[0].tag.id,
                 msgId: JSON.parse(forwardingToDistMsg.message.dataMessage.body)[0].messageId
             };
             return;
-        }
-
-        else if(response.action === "Forward to Question") {
+        }else if(response.action === "Forward to Question") {
             let questionNumber = Number(response.actionOption.split(' ')[1]);
-            this.threadStatus[msg.threadId].currentQuestion = this.threadStatus[msg.threadId].questions[questionNumber-1];
+            threadStatus.currentQuestion = threadStatus.questions[questionNumber-1];
         }
 
         return true;
@@ -224,43 +229,41 @@ class ForstaBot {
     }
 
     parseResponse(msg){
-        const prompt = this.threadStatus[msg.threadId].currentQuestion.prompt;
-        if(this.threadStatus[msg.threadId].currentQuestion.type === 'Free Response'){
-            const responseText = msg.data.body[0].value;
-            this.threadStatus[msg.threadId].responses.push({ 
-                prompt: prompt, response: responseText 
+        const threadStatus = this.threadStatus[msg.threadId];
+        const currentQuestion = threadStatus.currentQuestion;
+
+        if(currentQuestion.type === 'Free Response'){
+            threadStatus.responses.push({ 
+                prompt: currentQuestion.prompt, 
+                response: msg.data.body[0].value 
             });
-            return this.threadStatus[msg.threadId].currentQuestion.responses[0];
+            return currentQuestion.responses[0];
         }     
 
+        //check that a response is available
         const responseNumber = Number(msg.data.action);   
-        if(responseNumber > this.threadStatus[msg.threadId].currentQuestion.responses.length - 1 || responseNumber < 0){
+        if(responseNumber > currentQuestion.responses.length - 1 || responseNumber < 0){
             return undefined;
         }
-
-        const responseText = this.threadStatus[msg.threadId].currentQuestion.responses[responseNumber].text;
-        this.threadStatus[msg.threadId].responses.push({ 
-            prompt: prompt, response: responseText 
+        //if it is, respond
+        const responseText = currentQuestion.responses[responseNumber].text;
+        threadStatus.responses.push({ 
+            prompt: currentQuestion.prompt, 
+            response: responseText 
         });
-        return this.threadStatus[msg.threadId].currentQuestion.responses[responseNumber];
+        return currentQuestion.responses[responseNumber];
     }
 
     async saveToMessageHistory(received, envelope, message, attachmentData) {
-        const senderId = message.sender.userId;
-        const sender = (await this.getUsers([senderId]))[0];
+        const sender = (await this.getUsers([message.sender.userId]))[0];
         const senderLabel = this.fqLabel(sender);
         const distribution = await this.resolveTags(message.distribution.expression);
         const recipients = await this.getUsers(distribution.userids);
         const recipientIds = recipients.map(user => user.id);
         const recipientLabels = recipients.map(user => this.fqLabel(user));
-
-        const messageId = message.messageId;
-        const threadId = message.threadId;
-
-        const threadTitle = message.threadTitle;
-        const tmpBody = message.data && message.data.body;
-        const tmpText = tmpBody && tmpBody.find(x => x.type === 'text/plain');
-        const messageText = (tmpText && tmpText.value) || '';
+        const tempBody = message.data && message.data.body;
+        const tempText = tempBody && tempBody.find(x => x.type === 'text/plain');
+        const messageText = (tempText && tempText.value) || '';
 
         const attachmentMeta = (message.data && message.data.attachments) || [];
         if (attachmentData.length != attachmentMeta.length) {
@@ -273,15 +276,15 @@ class ForstaBot {
             payload: JSON.stringify(envelope),
             received,
             distribution: JSON.stringify(distribution),
-            messageId,
-            threadId,
-            senderId,
+            messageId: message.messageId,
+            threadId: message.threadId,
+            senderId: message.sender.userId,
             senderLabel,
             recipientIds,
             recipientLabels,
             attachmentIds,
             tsMain: messageText,
-            tsTitle: threadTitle
+            tsTitle: message.threadTitle
         });
 
         for (let i = 0; i < attachmentIds.length; i++) {
@@ -290,7 +293,7 @@ class ForstaBot {
                 data: attachmentData[i].data,
                 type: attachmentMeta[i].type,
                 name: attachmentMeta[i].name,
-                messageId: messageId
+                messageId: message.messageId
             });
         }
     }
