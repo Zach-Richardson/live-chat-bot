@@ -1,54 +1,49 @@
 <style>
-div [class*="pull left"] {
-  float: left;
-  margin-left: 0.25em;
-}
-div [class*="pull right"] {
-  float: right;
-  margin-right: 0.25em;
-}
-a{
-    color:#ddd;
-}
-a:hover{
-    color:#fff;
-}
-.hover-white:hover{
-    cursor: pointer;
-    color:#fff;
-}
 .header{
-    color:white;
+    color:#eee;
     display:inline;
     vertical-align:middle;
     margin-left:12px;
     cursor:pointer;
 }
-
+.hoverwhite{
+    cursor: pointer;
+    color:#bbb;
+}
+.hoverwhite:hover{
+    cursor: pointer;
+    color:#fff;
+}
+.white{
+    color:#fff;
+}
+.white:hover{
+    color:#fff;
+}
 </style>
 
 <template>
     <div>
     <sui-sidebar
-        class="reactiveSidebar"
-        style="background-color:#222"
+        style="background-color:#202122"
         animation="slide out"
         direction="left"
         visible
-        mq="bigScreen"
         width="very wide">
 
         <div style="padding:10px"></div>
 
-        <span style="padding:10px">
+        <div style="padding:10px">
             <img 
                 class="logo" 
                 src="/static/images/forsta-logo-invert.svg" 
                 height="50px"
                 width="50px"
                 @click="questions()">
-            <h3 class="header" @click="questions()">&nbsp;&nbsp;Forsta Live Chat</h3>
-        </span>
+            <h3 
+                class="header"
+                @click="questions()">&nbsp;&nbsp;Forsta Live Chat</h3>
+        </div>
         
         <sui-list 
             divided 
@@ -56,62 +51,80 @@ a:hover{
             size="huge" style="padding:7px; margin-top:50px">
             <sui-list-item @click="chat()">
                 <sui-list-icon 
-                    class="hover-white"
                     name="comments" 
                     size="large" 
-                    vertical-align="middle" 
-                    style="color:white" />
-                <sui-list-content>
-                    <a>Chat</a>
+                    vertical-align="middle"
+                    :class="{
+                        'white': currentRoute=='/chat', 
+                        'hoverwhite': currentRoute!='/chat'}" />
+                <sui-list-content  >
+                    <a :class="{
+                        'white': currentRoute=='/chat', 
+                        'hoverwhite': currentRoute!='/chat'}">Chat</a>
                 </sui-list-content>
             </sui-list-item>
             <sui-list-item @click="archive()">
                 <sui-list-icon 
-                    class="hover-white"
                     name="archive" 
                     size="large" 
                     vertical-align="middle" 
-                    style="color:white" />
+                    :class="{
+                        'white': currentRoute=='/archive', 
+                        'hoverwhite': currentRoute!='/archive'}"/>
                 <sui-list-content>
-                    <a>Archive</a>
+                    <a :class="{
+                        'white': currentRoute=='/archive', 
+                        'hoverwhite': currentRoute!='/archive'}">Archive</a>
                 </sui-list-content>
             </sui-list-item>
             <sui-list-item @click="questions()">
                 <sui-list-icon 
-                    class="hover-white"
                     name="sitemap" 
                     size="large" 
                     vertical-align="middle" 
-                    style="color:white" />
+                    :class="{
+                        'white': currentRoute=='/questions', 
+                        'hoverwhite': currentRoute!='/questions'}"/>
                 <sui-list-content>
-                    <a>Questions</a>
+                    <a :class="{
+                        'white': currentRoute=='/questions', 
+                        'hoverwhite': currentRoute!='/questions'}">Questions</a>
                 </sui-list-content>
             </sui-list-item>
             <sui-list-item @click="businessInfo()">
                 <sui-list-icon 
-                    class="hover-white"
                     name="clock" 
                     size="large" 
                     vertical-align="middle" 
-                    style="color:white" />
+                    :class="{
+                        'white': currentRoute=='/businessInfo',
+                        'hoverwhite': currentRoute!='/businessInfo'}"/>
                 <sui-list-content>
-                    <a>Business Info</a>
+                    <a :class="{
+                        'white': currentRoute=='/businessInfo', 
+                        'hoverwhite': currentRoute!='/businessInfo'}">Business Info</a>
                 </sui-list-content>
             </sui-list-item>
-            <sui-list-item @click="users()">
+            <sui-list-item  @click="users()">
                 <sui-list-icon 
                     class="hover-white"  
                     name="user" 
                     size="large" 
                     vertical-align="middle" 
-                    style="color:white" />
+                    :class="{
+                        'white': currentRoute=='/users', 
+                        'hoverwhite': currentRoute!='/users'}"/>
                 <sui-list-content>
-                    <a>Users</a>
+                    <a :class="{
+                        'white': currentRoute=='/users', 
+                        'hoverwhite': currentRoute!='/users'}">Users</a>
                 </sui-list-content>
             </sui-list-item>
             <sui-list-item @click="showingSignOutModal = true">
                 <sui-list-content>
-                    <a>&nbsp;&nbsp;Sign Out</a>
+                    <a :class="{
+                        'white': currentRoute=='/businessInfo', 
+                        'hoverwhite': currentRoute!='/businessInfo'}">&nbsp;&nbsp;Sign Out</a>
                 </sui-list-content>
             </sui-list-item>
         </sui-list>
@@ -150,27 +163,37 @@ module.exports = {
     data: () => ({ 
         global: shared.state,
         loggedIn: false,
-        showingSignOutModal: false
+        showingSignOutModal: false,
+        currentRoute: window.location.pathname
     }),
-    methods: {
+    methods: {        
         chat: function () {
+            this.currentRoute = '/chat';
             this.$router.push({ name: 'chat' });
         },
         archive: function () {
+            this.currentRoute = '/archive';
             this.$router.push({ name: 'archive' });
         },
         questions: function () {
+            this.currentRoute = '/questions';
             this.$router.push({ name: 'questions' });
         },
         businessInfo: function () {
+            this.currentRoute = '/businessInfo';
             this.$router.push({ name: 'businessInfo' });
         },
         users: function () {
+            this.currentRoute = '/users';
             this.$router.push({ name: 'users' });
         },
         logout: function () {
             this.global.apiToken = null;
         },
+    },
+    mounted: function() {
+        console.log('this.currentRoute');
+        console.log(this.currentRoute);
     }
 }
 </script>

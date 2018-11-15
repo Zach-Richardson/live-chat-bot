@@ -85,7 +85,7 @@ docker-db-clean:
 watch:
 	$(NPATH)/grunt watch
 
-run: $(BUILD)
+run: $(BUILD) 
 	npm start
 
 forcerun:
