@@ -1,24 +1,19 @@
 <style>
-.header{
-    color:#eee;
-    display:inline;
-    vertical-align:middle;
-    margin-left:12px;
-    cursor:pointer;
-}
-.hoverwhite{
+.lightgrey{
     cursor: pointer;
     color:#bbb;
-}
-.hoverwhite:hover{
-    cursor: pointer;
-    color:#fff;
 }
 .white{
     color:#fff;
 }
-.white:hover{
-    color:#fff;
+i{
+    cursor:pointer;
+}
+.item{
+    cursor:pointer;
+}
+a:hover{
+    color:white;
 }
 </style>
 
@@ -31,100 +26,100 @@
         visible
         width="very wide">
 
-        <div style="padding:10px"></div>
+        <sui-grid>
+            <sui-grid-row :columns="2">
+                <sui-grid-column :width="6" style="padding:10px 0px 10px 10px">
+                    <img class="logo" 
+                        src="/static/images/forsta-logo-invert.svg" 
+                        height="50px"
+                        width="50px"
+                        style="margin-left:20px"
+                        @click="questions()">
+                </sui-grid-column>
+                <sui-grid-column style="padding-left:0px" :width="10">
+                    <img src="/static/images/logo_just_text.svg" 
+                        height="17px"
+                        width="119px"
+                        style="margin-top:20px"
+                        @click="questions()"><br />
+                    <h3
+                        class="white"
+                        style="margin-top:5px"
+                        @click="questions()">Live Chat</h3>
+                </sui-grid-column>
+            </sui-grid-row>
+        </sui-grid>
 
-        <div style="padding:10px">
-            <img 
-                class="logo" 
-                src="/static/images/forsta-logo-invert.svg" 
-                height="50px"
-                width="50px"
-                @click="questions()">
-            <h3 
-                class="header"
-                @click="questions()">&nbsp;&nbsp;Forsta Live Chat</h3>
-        </div>
-        
         <sui-list 
             divided 
             relaxed 
             size="huge" style="padding:7px; margin-top:50px">
-            <sui-list-item @click="chat()">
+            <sui-list-item @click="chat()" @mouseenter="hovering='chat'" @mouseleave="hovering=''">
                 <sui-list-icon 
                     name="comments" 
                     size="large" 
                     vertical-align="middle"
                     :class="{
-                        'white': currentRoute=='/chat', 
-                        'hoverwhite': currentRoute!='/chat'}" />
+                        'white':currentRoute=='/chat'||hovering=='chat',
+                        'lightgrey':!(currentRoute=='/chat'||hovering=='chat')}" /> 
                 <sui-list-content  >
-                    <a :class="{
-                        'white': currentRoute=='/chat', 
-                        'hoverwhite': currentRoute!='/chat'}">Chat</a>
+                    <a :class="{'white': currentRoute=='/chat'||hovering=='chat'}">Chat</a>
                 </sui-list-content>
             </sui-list-item>
-            <sui-list-item @click="archive()">
+            <sui-list-item @click="archive()" @mouseenter="hovering='archive'" @mouseleave="hovering=''">
                 <sui-list-icon 
                     name="archive" 
                     size="large" 
                     vertical-align="middle" 
                     :class="{
-                        'white': currentRoute=='/archive', 
-                        'hoverwhite': currentRoute!='/archive'}"/>
+                        'white':currentRoute=='/archive'||hovering=='archive',
+                        'lightgrey':!(currentRoute=='/archive'||hovering=='archive')}" /> 
                 <sui-list-content>
-                    <a :class="{
-                        'white': currentRoute=='/archive', 
-                        'hoverwhite': currentRoute!='/archive'}">Archive</a>
+                    <a :class="{'white': currentRoute=='/archive'||hovering=='archive'}">Archive</a>
                 </sui-list-content>
             </sui-list-item>
-            <sui-list-item @click="questions()">
+            <sui-list-item @click="questions()" @mouseenter="hovering='questions'" @mouseleave="hovering=''">
                 <sui-list-icon 
                     name="sitemap" 
                     size="large" 
                     vertical-align="middle" 
                     :class="{
-                        'white': currentRoute=='/questions', 
-                        'hoverwhite': currentRoute!='/questions'}"/>
+                        'white':currentRoute=='/questions'||hovering=='questions',
+                        'lightgrey':!(currentRoute=='/questions'||hovering=='questions')}" /> 
                 <sui-list-content>
-                    <a :class="{
-                        'white': currentRoute=='/questions', 
-                        'hoverwhite': currentRoute!='/questions'}">Questions</a>
+                    <a :class="{'white': currentRoute=='/questions'||hovering=='questions'}">Questions</a>
                 </sui-list-content>
             </sui-list-item>
-            <sui-list-item @click="businessInfo()">
+            <sui-list-item @click="businessInfo()" @mouseenter="hovering='businessInfo'" @mouseleave="hovering=''">
                 <sui-list-icon 
                     name="clock" 
                     size="large" 
                     vertical-align="middle" 
                     :class="{
-                        'white': currentRoute=='/businessInfo',
-                        'hoverwhite': currentRoute!='/businessInfo'}"/>
+                        'white':currentRoute=='/businessInfo'||hovering=='businessInfo',
+                        'lightgrey':!(currentRoute=='/businessInfo'||hovering=='businessInfo')}" /> 
                 <sui-list-content>
-                    <a :class="{
-                        'white': currentRoute=='/businessInfo', 
-                        'hoverwhite': currentRoute!='/businessInfo'}">Business Info</a>
+                    <a :class="{'white': currentRoute=='/businessInfo'||hovering=='businessInfo'}">Business Info</a>
                 </sui-list-content>
             </sui-list-item>
-            <sui-list-item  @click="users()">
+            <sui-list-item  @click="users()" @mouseenter="hovering='users'" @mouseleave="hovering=''">
                 <sui-list-icon 
                     class="hover-white"  
                     name="user" 
                     size="large" 
                     vertical-align="middle" 
                     :class="{
-                        'white': currentRoute=='/users', 
-                        'hoverwhite': currentRoute!='/users'}"/>
+                        'white':currentRoute=='/users'||hovering=='users',
+                        'lightgrey':!(currentRoute=='/users'||hovering=='users')}" /> 
                 <sui-list-content>
-                    <a :class="{
-                        'white': currentRoute=='/users', 
-                        'hoverwhite': currentRoute!='/users'}">Users</a>
+                    <a :class="{'white': currentRoute=='/users'||hovering=='users'}">Users</a>
                 </sui-list-content>
             </sui-list-item>
-            <sui-list-item @click="showingSignOutModal = true">
+            <sui-list-item 
+                @click="showingSignOutModal = true"
+                @mouseenter="hovering='signout'" @mouseleave="hovering=''">
                 <sui-list-content>
-                    <a :class="{
-                        'white': currentRoute=='/businessInfo', 
-                        'hoverwhite': currentRoute!='/businessInfo'}">&nbsp;&nbsp;Sign Out</a>
+                    <a :class="{'white': hovering=='signout'}">&nbsp;&nbsp;Sign Out</a>
                 </sui-list-content>
             </sui-list-item>
         </sui-list>
@@ -164,7 +159,8 @@ module.exports = {
         global: shared.state,
         loggedIn: false,
         showingSignOutModal: false,
-        currentRoute: window.location.pathname
+        currentRoute: window.location.pathname,
+        hovering: ''
     }),
     methods: {        
         chat: function () {

@@ -1,4 +1,30 @@
 var jwtDecode = require('jwt-decode');
+var librelay = require('librelay');
+
+let relay = {
+    messageSender: undefined,
+    messageReciever: undefined,
+    init: async function() {
+        this.msgReceiver = await librelay.MessageReceiver.factory();
+        this.msgReceiver.addEventListener('message', this.onMessage);
+        await this.msgReceiver.connect();
+
+        this.messageSender = await librelay.MessageSender.factory();
+        console.log('should be initialized now . . . . ');
+    },
+    onMessage: async function(ev) {
+        const message = ev.data;
+        console.log('got message:' + message);
+    },
+    sendMessage: async function(dist, threadId, text){
+        return this.messageSender.send({
+            distribution: dist,
+            threadId: threadId,
+            html: `${ text }`,
+            text: text
+        });
+    }
+};
 
 var state = {
     onboardStatus: undefined,
@@ -42,5 +68,6 @@ function autoexpire(token) {
 }
 
 module.exports = { 
-    state
+    state,
+    relay
 };
