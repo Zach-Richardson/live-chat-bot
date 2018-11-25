@@ -115,6 +115,19 @@ a:hover{
                     <a :class="{'white': currentRoute=='/users'||hovering=='users'}">Users</a>
                 </sui-list-content>
             </sui-list-item>
+            <sui-list-item  @click="groups()" @mouseenter="hovering='groups'" @mouseleave="hovering=''">
+                <sui-list-icon 
+                    class="hover-white"  
+                    name="users" 
+                    size="large" 
+                    vertical-align="middle" 
+                    :class="{
+                        'white':currentRoute=='/groups'||hovering=='groups',
+                        'lightgrey':!(currentRoute=='/groups'||hovering=='groups')}" /> 
+                <sui-list-content>
+                    <a :class="{'white': currentRoute=='/groups'||hovering=='groups'}">Groups</a>
+                </sui-list-content>
+            </sui-list-item>
             <sui-list-item 
                 @click="showingSignOutModal = true"
                 @mouseenter="hovering='signout'" @mouseleave="hovering=''">
@@ -183,13 +196,13 @@ module.exports = {
             this.currentRoute = '/users';
             this.$router.push({ name: 'users' });
         },
+        groups: function () {
+            this.currentRoute = '/groups';
+            this.$router.push({ name: 'groups' });
+        },
         logout: function () {
             this.global.apiToken = null;
         },
     },
-    mounted: function() {
-        console.log('this.currentRoute');
-        console.log(this.currentRoute);
-    }
 }
 </script>

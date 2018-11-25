@@ -3,129 +3,122 @@
 div.listgap {
     margin-bottom:3em!important;
 }
+.pull-left {
+    float: left;
+    margin-right: 0.25em;
+}
+.pull-right {
+    float: right;
+    margin-right: 0.25em;
+}
+.flexbox {
+    display: flex;
+    flex: 1;
+    margin-right:0.5em;
+    width:80%;
+}
 </style>
 
 <template>
-    <div class="ui main text container" style="margin-top: 80px;">
-        <div class="ui container center aligned">
-            <div class="ui basic segment huge">
-                <h1 class="ui header">
-                    <i class="large user icon"></i>
-                    Authorized Site Users
-                </h1>
-            </div>
-            <div class="ui centered grid">
-                <div class="ui nine wide column basic segment left aligned b1" 
-                    :class="{loading: loading}" 
-                    style="margin-top:-1em;">
-                    <div class="ui list listgap">
-                        <div v-for="a in admins" :key="a.id" class="item">
-                            <a 
-                                v-if="admins.length > 1" 
-                                @click="removeAdmin(a.id)" 
-                                data-tooltip="remove this authorized user">
-                                <i class="large remove circle icon"></i>
-                            </a> 
-                            <span 
-                                v-else 
-                                data-tooltip="cannot remove last authorized user">
-                                <i style="color: lightgray;" class="large remove circle icon"></i>
-                            </span> 
-                            {{a.label}}
-                        </div>
-                    </div>
-                    <form class="ui large form enter-tag" @submit.prevent="addAdmin">
-                        <div class="field" :class="{error:!!tagError}">
-                            <div data-tooltip="add an authorized user" class="ui left icon action input">
-                                <i class="at icon"></i>
-                                <input type="text" v-model='tag' name="tag" placeholder="user:org" autocomplete="off">
-                                <button class="ui icon button" :disabled="!tag" :class="{primary:!!tag}"><i class="plus icon"></i></button>
-                            </div>
-                        </div>
-                    </form>
+    <div class="ui main text container left aligned" style="margin-top: 80px;">
+        <sui-grid>
+            <sui-grid-row>
+                <sui-grid-column :width="16">
+                    <!-- Search Input -->
+                    <span class="flexbox ui left icon input">
+                        <sui-icon
+                            name="at" />
+                        <input 
+                            @keyup.enter="addAdmin()"
+                            v-model="newAdminTag"
+                            style="border-radius:0px"
+                            type="text" 
+                            placeholder="Enter a user tag..." />
+                    </span>
                     <div v-if="tagError" class="ui small error message">{{tagError}}</div>
-                </div>
-            </div>
-        </div>
+                    <!-- /Search Input -->
+
+                    <!-- Admin List -->
+                    <sui-grid style="margin-top: 40px;">
+                        <sui-grid-row v-for="admin in admins" :key="admin.id">
+                            <sui-grid-column :width="2">
+                                <sui-list-icon 
+                                    name="github" 
+                                    size="big" 
+                                    vertical-align="middle"/>
+                            </sui-grid-column>
+                            <sui-grid-column :width="12">
+                                <h3 v-text="admin.label"></h3>
+                            </sui-grid-column>
+                            <sui-grid-column :width="2">
+                                <sui-button 
+                                    icon="trash"
+                                    color="red"
+                                    @click="removeAdmin(admin.id)"/>
+                            </sui-grid-column>
+                        </sui-grid-row>
+                    </sui-grid>
+                    <!-- /Admin List -->
+
+                </sui-grid-column>
+            </sui-grid-row>
+        </sui-grid>
     </div>
 </template>
 
 <script>
-
 const util = require('../util');
 const REFRESH_POLL_RATE = 15000;
 
-
-async function addAdmin() {
-    this.loading = true;
-    let result;
-    try {
-        result = await util.fetch.call(this, '/api/auth/admins/v1', { method: 'post', body: { op: 'add', tag: this.tag }})
-        this.loading = false;
-    } catch (err) {
-        console.error(err);
-        this.loading = false;
-        return false;
-    }
-    if (result.ok) {
-        const { administrators } = result.theJson;
-        this.admins = administrators;
-        this.tag = '';
-        this.tagError = '';
-    } else {
-        this.tagError = util.mergeErrors(result.theJson);
-    }
-}
-
-async function removeAdmin(id) {
-    this.loading = true;
-    let result;
-    try {
-        result = await util.fetch.call(this, '/api/auth/admins/v1', { method: 'post', body: { op: 'remove', id }})
-        this.loading = false;
-    } catch (err) {
-        console.error(err);
-        this.loading = false;
-        return false;
-    }
-    if (result.ok) {
-        const { administrators } = result.theJson;
-        this.admins = administrators;
-    } else {
-        this.removeError = util.mergeErrors(result.theJson);
-    }
-}
-
-
 module.exports = {
-    data: () => ({ 
-        global: shared.state,
-        loading: false,
-        interval: null,
-        tag: '',
+    data: () => ({
+        admins: [],
+        newAdminTag: '',
         tagError: '',
-        removeError: '',
-        admins: []
+        global: shared.state,
+        interval: null,
+        groups: {}
     }),
-    computed: {
-    },
-    watch: {
-    },
     methods: {
         getAdmins: function() {
             util.fetch.call(this, '/api/auth/admins/v1')
             .then(result => {
                 if (result.ok) {
                     this.admins = result.theJson.administrators;
+                }else{
+                    console.log('error retrieving admin data from /api/auth/admins/v1');
+                    console.log(result);
                 }
             });
         },
         removeAdmin: function(id) {
-            removeAdmin.call(this, id);
+            let options = { method: 'post', body: { op: 'remove', id }};
+            util.fetch.call(this, '/api/auth/admins/v1', options)
+            .then(res => {
+                if(res.ok){
+                    this.admins = res.theJson;
+                    this.newAdminTag = '';
+                    this.tagError = '';
+                }else{
+                    this.tagError = util.mergeErrors(res.theJson);
+                }
+            })
+            .catch(err => console.log(err));
         },
         addAdmin: function() {
-            addAdmin.call(this);
-        }
+            let options = { method: 'post', body: { op: 'add', tag: this.newAdminTag }};
+            util.fetch.call(this, '/api/auth/admins/v1', options)
+            .then(res => {
+                if(res.ok) {
+                    this.admins = res.theJson;
+                    this.newAdminTag = '';
+                    this.tagError = '';
+                }else{
+                    this.tagError = util.mergeErrors(res.theJson);
+                }
+            })
+            .catch(err => console.log(err));
+        },
     },
     mounted: function() {
         this.getAdmins();

@@ -165,6 +165,17 @@ module.exports = {
         message: '',
         threads: require('./mock.js').mockThreadData 
     }),
+    sockets: {
+        connect: function () {
+            console.log('socket connected')
+        },
+        message: function (msg) {
+            console.log('message recieved !').then(res => {
+                console.log(res);
+            });
+            console.log(msg);
+        }
+    },
     methods: {
         select: function(thread) {
             let mw = document.getElementById("messageWindow");
@@ -208,7 +219,7 @@ module.exports = {
 
         }
     },
-    mounted: function() {
+    mounted: async function() {
         const mw = document.getElementById("messageWindow");
         setInterval(function() {
             const isScrolledToBottom = mw.scrollHeight - mw.clientHeight <= mw.scrollTop + 1;
@@ -216,11 +227,6 @@ module.exports = {
                 mw.scrollTop = mw.scrollHeight - mw.clientHeight;
             }
         }, 500)
-
-        if(!shared.relay.messageSender||!shared.relay.messageReciever){
-            console.log('initializing the thing....');
-            shared.relay.init();
-        }
     }
 }       
 </script>

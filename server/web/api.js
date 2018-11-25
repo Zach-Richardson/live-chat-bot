@@ -242,7 +242,7 @@ class AuthenticationAPIV1 extends APIHandler {
             res.status(200).json({ administrators: admins });
             return;
         } catch (e) {
-            console.log('problem in get administrators', e);
+            console.log('problem in get api/auth/admins/v1', e);
             res.status(e.statusCode || 500).json(e.info || { message: 'internal error'});
             return;
         }
@@ -368,11 +368,44 @@ class TagsAPIV1 extends APIHandler {
 
 }
 
+class GroupsAPIV1 extends APIHandler {
+
+    constructor(options) {
+        super(options);
+        this.router.get('/*', this.asyncRoute(this.onGet, false));
+        this.router.post('/*', this.asyncRoute(this.onPost, false));
+    }
+
+    async onGet(req, res){
+        let groups = await relay.storage.get('live-chat-bot', 'groups');
+        if(!groups){
+            let groups = [
+                {
+                    name:'Default',
+                    users: []
+                }
+            ];
+            const admins = await this.server.bot.getAdministrators();
+            admins.map(admin => groups[0].users.push(admin));
+            relay.storage.set('live-chat-bot', 'groups', groups);
+        }
+        res.status(200).json(groups);
+    }
+
+    async onPost(req, res){
+        let groups = req.body.groups;
+        await relay.storage.set('live-chat-bot', 'groups', groups);
+        res.status(200);
+    }
+
+}
+
 module.exports = {
     APIHandler,
     OnboardAPIV1,
     AuthenticationAPIV1,
     QuestionsAPIV1,
     BusinessInfoAPIV1,
-    TagsAPIV1
+    TagsAPIV1,
+    GroupsAPIV1
 };

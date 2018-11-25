@@ -4,6 +4,9 @@ function main() {
     const VueRouter = require('vue-router');
     const SuiVue = require('semantic-ui-vue');
     const VueMq = require('vue-mq');
+    const VueSocketIO = require('vue-socket.io');
+    console.log('VueRouter');
+    console.log(VueRouter);
     Vue.use(VueRouter);
     Vue.use(SuiVue.default);
     Vue.use(VueMq, {
@@ -12,6 +15,12 @@ function main() {
             bigScreen: Infinity
         }
     });
+    console.log('VueSocketIO');
+    console.log(VueSocketIO);
+    Vue.use(new VueSocketIO({
+        debug: true,
+        connection: 'http://localhost:4096/'
+    }));
 
     const Root = require('./root.vue');
     const routes = [
@@ -21,6 +30,7 @@ function main() {
         { path: '/onboard/tag', name: 'onboardTag', component: require('./onboard/onboardTag.vue') },
         { path: '/onboard/auth/:type/:tag', name: 'onboardAuth', component: require('./onboard/onboardAuth.vue') },
         { path: '/users', name: 'users', component: require('./users/users.vue') },
+        { path: '/groups', name: 'groups', component: require('./groups/groups.vue') },
         { path: '/questions', name: 'questions', component: require('./questions/questions.vue') },
         { path: '/businessInfo', name: 'businessInfo', component: require('./businessInfo/businessInfo.vue') },
         { path: '/archive', name: 'archive', component: require('./archive/archive.vue') },

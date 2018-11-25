@@ -152,7 +152,7 @@ div [class*="pull right"] {
                 </sui-grid-column>
             </sui-grid-row>
             
-             <sui-grid-row
+            <sui-grid-row
                 class="left aligned"
                 v-if="question.type==='Free Response'">
                 <sui-grid-column>

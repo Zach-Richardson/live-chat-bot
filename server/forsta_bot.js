@@ -1,11 +1,11 @@
 'use strict';
+const relay = require('librelay');
+const uuid4 = require('uuid/v4');
+const moment = require('moment');
 
 const BotAtlasClient = require('./atlas_client');
 const cache = require('./cache');
-const relay = require('librelay');
 const PGStore = require("./pgstore");
-const uuid4 = require('uuid/v4');
-const moment = require('moment');
 const words = require("./authwords");
 
 const AUTH_FAIL_THRESHOLD = 10;
@@ -33,6 +33,13 @@ class ForstaBot {
 
         this.threadStatus = {};
         this.outgoingThreadId = uuid4();
+    }
+
+    async configureSocket(io){
+        this.socketio = io;
+        this.socketio.on('connect', function (socket) {
+            console.log('connection recieved');
+        });
     }
 
     async stop() {
@@ -72,9 +79,7 @@ class ForstaBot {
     }
 
     async onMessage(ev) {
-        const received = new Date(ev.data.timestamp);
         const envelope = JSON.parse(ev.data.message.body);
-        const attachmentData = ev.data.message.attachments || [];
         const msg = envelope.find(x => x.version === 1);
         if (!msg) {
             console.error('Dropping unsupported message:', envelope);
@@ -84,13 +89,12 @@ class ForstaBot {
         const businessInfo = await relay.storage.get('live-chat-bot', 'business-info');
         const questions = await relay.storage.get('live-chat-bot', 'questions');        
         const dist = await this.resolveTags(msg.distribution.expression);
-        const action = msg.data.action;
-        const threadId = msg.threadId;
         const users = await this.getUsers(dist.userids);
 
+        const threadId = msg.threadId;
         let threadStatus = this.threadStatus[threadId];
 
-        if(!action && !threadStatus) {            
+        if(!msg.data.action && !threadStatus) {            
             this.threadStatus[threadId] = {
                 questions,
                 currentQuestion: questions[0],
@@ -103,6 +107,8 @@ class ForstaBot {
             threadStatus = this.threadStatus[threadId];
         }
         
+        const received = new Date(ev.data.timestamp);
+        const attachmentData = ev.data.message.attachments || [];
         this.saveToMessageHistory(received, envelope, msg, attachmentData);
 
         //if the live chat bot is just recording messages, return with no response
@@ -123,10 +129,13 @@ class ForstaBot {
             }
         }
         
+        //if this thread is waiting for an authorized live chat user to connect, connect it
         if(threadStatus && threadStatus.waitingForTakeover){
             await this.handleDistTakeover(msg, dist);
             return;
-        } else if(threadStatus.waitingForResponse){
+        }
+        
+        if(threadStatus && threadStatus.waitingForResponse){
             const validResponse = await this.handleResponse(msg, dist, users, businessInfo);
             if(!validResponse) return;
         }
@@ -176,10 +185,9 @@ class ForstaBot {
     async handleResponse(msg, dist, users, businessInfo){
         const threadStatus = this.threadStatus[msg.threadId];
         const response = this.parseResponse(msg, threadStatus);
-        const noActionError = `ERROR: response action not configured !`;
-        const noForwardError = `ERROR: Forwarding distribution does not exist.`;
         
         if(!response.action){
+            const noActionError = `ERROR: response action not configured !`;
             await this.sendMessage(dist, msg.threadId, noActionError);
             this.questions = undefined;
             return;
@@ -194,6 +202,7 @@ class ForstaBot {
             await this.sendMessage( dist, msg.threadId, businessInfo.forwardMessage);
             
             if(!forwardingDist){
+                const noForwardError = `ERROR: Forwarding distribution does not exist.`;
                 await this.sendMessage(dist, msg.threadId, noForwardError);
                 return;
             }
@@ -324,6 +333,8 @@ class ForstaBot {
             threadId: threadId,
             html: `${ text }`,
             text: text
+        }).then(res => {
+            console.log(res);
         });
     }
 

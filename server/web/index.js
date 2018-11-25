@@ -7,6 +7,7 @@ const path = require('path');
 const process = require('process');
 const herokuSslRedirect = require('heroku-ssl-redirect');
 
+
 const root = `${__dirname}/../../dist`;
 const build = require(`${root}/build.json`);
 const port = process.env.PORT || '4096';
@@ -22,6 +23,7 @@ class WebServer {
         this.bot = bot;
         this.port = port;
         this.app = express();
+        
         if (process.env.HEROKU_FORCE_SSL) {
             console.log('forcing SSL on heroku');
             this.app.use(herokuSslRedirect());
@@ -32,6 +34,7 @@ class WebServer {
         this.app.use('/api/auth/', (new api.AuthenticationAPIV1({server: this})).router);
         this.app.use('/api/questions/', (new api.QuestionsAPIV1({server: this})).router);
         this.app.use('/api/business-info/', (new api.BusinessInfoAPIV1({server: this})).router);
+        this.app.use('/api/groups/', (new api.GroupsAPIV1({server: this})).router);
         this.app.use('/api/messages/', (new messagesApi.MessagesAPIv1({server: this})).router);
         this.app.use('/api/tags/', (new api.TagsAPIV1({server: this})).router);
         this.app.use('/static/', express.static(path.join(root, 'static'), {strict: true}));
@@ -56,7 +59,9 @@ class WebServer {
     }
 
     async start() {
-        this.app.listen(this.port, process.env.LISTEN_ADDR);
+        let server = await this.app.listen(this.port);
+        var io = require('socket.io')(server);
+        await this.bot.configureSocket(io);
     }
 }
 

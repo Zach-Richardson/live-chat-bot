@@ -88,7 +88,7 @@ class PGStore {
     }
 
     async shutdown() {
-        console.log('shutting down db stuff');
+        console.log('shutting down postgres client');
         await this.client.end();
         this.client = null;
     }

@@ -56,9 +56,11 @@ a:hover{
                         <div class="item" @click="businessInfo">
                             <i class="clock icon tiny"></i> Business Info 
                         </div>
-                        
                         <div class="item" @click="users">
                             <i class="user icon tiny"></i> Users
+                        </div>
+                        <div class="item" @click="groups">
+                            <i class="users icon tiny"></i> Groups
                         </div>
                         <div class="item" @click="showingSignOutModal = true">
                             Sign Out
@@ -123,8 +125,9 @@ module.exports = {
         users: function () {
             this.$router.push({ name: 'users' });
         },
-        
-        
+        groups: function () {
+            this.$router.push({ name: 'groups' });
+        },
     }
 }
 </script>

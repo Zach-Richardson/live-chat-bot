@@ -15,8 +15,6 @@
             </sui-grid-row>
         </sui-grid>
         <router-view v-else />
-
-        
     </div>
 </template>
 
