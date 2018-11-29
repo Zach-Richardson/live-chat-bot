@@ -36,17 +36,23 @@ class ForstaBot {
     }
 
     async configureSocket(io){
-        this.socketio = io;
-        // let sockets = {};
-        this.socketio.on('connect', function (socket) {
+        this.notSockets = {
+            'itsworkingreallygood!':true
+        };
+        io.on.call(this, 'connect', function (socket) {
             let s = socket;
-            socket.on('createConnection', function(data) {
-                console.log('s:');
-                console.log(s);
-                console.log('data');
-                console.log(data);
+            console.log('this.notSockets : ');
+            console.log(this.notSockets);
+            socket.on.call(this, 'createConnection', function(userId) {
+                console.log('creating the socket...');
+                // console.log('socket : ');
+                // console.log(s);
+                this.notSockets[userId] = s;
+                console.log('this.sockets : ');
+                console.log(this.sockets);
             });
         });
+        this.socketio = io;
     }
 
     async stop() {
@@ -107,7 +113,7 @@ class ForstaBot {
                 currentQuestion: questions[0],
                 waitingForTakeover: null,
                 waitingForResponse: null,
-                listening: false,
+                connected: false,
                 responses: [],
                 sentOOOMessage: false,
             };
@@ -118,8 +124,8 @@ class ForstaBot {
         const attachmentData = ev.data.message.attachments || [];
         this.saveToMessageHistory(received, envelope, msg, attachmentData);
 
-        //if the live chat bot is just recording messages, return with no response
-        if(threadStatus && threadStatus.listening) {
+        //if the live chat bot is just relaying and recording messages, return with no response
+        if(threadStatus && threadStatus.connected) {
             return;
         }
 
@@ -130,7 +136,7 @@ class ForstaBot {
                 threadStatus.sentOOOMessage = true;
             }
 
-            if(businessInfo.action === 'Forward to Tag') {
+            if(businessInfo.action === 'Forward to Group') {
                 const oooDist = await this.resolveTags(businessInfo.promptTag);
                 await this.handleDistTakeover(msg, oooDist);
             }
@@ -164,31 +170,6 @@ class ForstaBot {
         }
     }
 
-    async handleDistTakeover(msg, forwardingDist){
-        const threadId = msg.data.action;
-        const chatUserTagId = this.threadStatus[threadId].waitingForTakeover.userTagId;
-        const distMemberUser = await this.atlas.fetch(`/v1/user/${msg.sender.userId}/`);
-        const chatBotUser = await this.atlas.fetch(`/v1/user/${this.ourId}/`);
-        const newDist = await this.resolveTags(`(<${chatUserTagId}>+<${distMemberUser.tag.id}>+<${chatBotUser.tag.id}>)`);
-        
-        forwardingDist.userids = forwardingDist.userids.filter(id => id != distMemberUser.id);
-
-        await this.sendMessage(
-            newDist, 
-            msg.data.action, 
-            `You are now connected with ${this.fqName(distMemberUser)}`,
-        );        
-        await this.sendResponse(
-            forwardingDist, 
-            this.outgoingThreadId, 
-            this.threadStatus[threadId].waitingForTakeover.msgId, 
-            `Taken by ${this.fqName(distMemberUser)}`
-        );
-
-        this.threadStatus[threadId].waitingForTakeover = false;        
-        this.threadStatus[threadId].listening = true;
-    }
-
     async handleResponse(msg, dist, users, businessInfo){
         const threadStatus = this.threadStatus[msg.threadId];
         const response = this.parseResponse(msg, threadStatus);
@@ -202,29 +183,25 @@ class ForstaBot {
 
         threadStatus.waitingForResponse = false;
 
-        if(response.action === "Forward to Tag") {
-            const forwardMessage = this.getForwardMessage(msg);
-            const botTagId = users.filter(u => u.id === this.ourId)[0].tag.id;
-            const forwardingDist = await this.resolveTags(`(<${response.tagId}>+<${botTagId}>)`);
-            await this.sendMessage( dist, msg.threadId, businessInfo.forwardMessage);
-            
-            if(!forwardingDist){
-                const noForwardError = `ERROR: Forwarding distribution does not exist.`;
+        if(response.action === "Forward to Group") {
+            let groups = await relay.storage.get('live-chat-bot', 'groups');
+            let group = groups.find(group => group.name == response.actionOption);
+            if(!group){
+                const noForwardError = `ERROR: Forwarding group does not exist.`;
                 await this.sendMessage(dist, msg.threadId, noForwardError);
                 return;
             }
-
-            let forwardingToDistMsg = await this.sendActionMessage(
-                forwardingDist, 
-                this.outgoingThreadId, 
-                forwardMessage,
-                [{title:'Connect', action: msg.threadId, color:'blue'}],
-                'Live Chat Queue'
-            );
+            const forwardMessage = this.getForwardMessage(msg);
+            group.users.forEach(user => {
+                //emitted object schemas should match librelay env schema
+                console.log('this.sockets : ');
+                console.log(this.sockets);
+                this.sockets[user.id].emit('connectMessageHistory', forwardMessage);
+                this.sockets[user.id].emit('connectButton', 'this is the message that should have the connect button');
+            });
 
             threadStatus.waitingForTakeover = {
-                userTagId: users.filter(u => u.id !== this.ourId)[0].tag.id,
-                msgId: JSON.parse(forwardingToDistMsg.message.dataMessage.body)[0].messageId
+                userTagId: msg.sender.id
             };
             return;
         }else if(response.action === "Forward to Question") {
@@ -244,6 +221,26 @@ class ForstaBot {
         return `${forwardMessage}\n\nClick the "Connect" button to chat with this user.`;
     }
 
+    async handleDistTakeover(msg, forwardingDist){
+        const threadId = msg.data.action;
+        const chatUserTagId = this.threadStatus[threadId].waitingForTakeover.userTagId;
+        const distMemberUser = await this.atlas.fetch(`/v1/user/${msg.sender.userId}/`);
+        const chatBotUser = await this.atlas.fetch(`/v1/user/${this.ourId}/`);
+        const newDist = await this.resolveTags(`(<${chatUserTagId}>+<${distMemberUser.tag.id}>+<${chatBotUser.tag.id}>)`);
+        
+        forwardingDist.userids = forwardingDist.userids.filter(id => id != distMemberUser.id);
+
+        await this.sendMessage(
+            newDist, 
+            msg.data.action, 
+            `You are now connected with ${this.fqName(distMemberUser)}`,
+        );        
+
+        this.threadStatus[threadId].waitingForTakeover = false;        
+        this.threadStatus[threadId].connected = true;
+    }
+
+
     parseResponse(msg){
         const threadStatus = this.threadStatus[msg.threadId];
         const currentQuestion = threadStatus.currentQuestion;
@@ -257,11 +254,17 @@ class ForstaBot {
         }     
 
         //check that a response is available
+        console.log('msg.data.action : ');
+        console.log(msg.data.action);
         const responseNumber = Number(msg.data.action);   
         if(responseNumber > currentQuestion.responses.length - 1 || responseNumber < 0){
             return undefined;
         }
         //if it is, respond
+        console.log('responseNumber : ');
+        console.log(responseNumber);
+        console.log('currentQuestion:');
+        console.log(currentQuestion);
         const responseText = currentQuestion.responses[responseNumber].text;
         threadStatus.responses.push({ 
             prompt: currentQuestion.prompt, 

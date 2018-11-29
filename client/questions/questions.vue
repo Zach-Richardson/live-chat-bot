@@ -125,7 +125,7 @@ div [class*="pull right"] {
                                         selection
                                         placeholder="Group"
                                         :options="groupsForDropdown"
-                                        v-model="question.responses[0].actionOption"
+                                        v-model="response.actionOption"
                                         @input="checkForChanges()"/>
                                 </span>                                
                                 <sui-input
@@ -248,6 +248,39 @@ module.exports = {
     mounted: function() {
         this.loadData();
     },
+    data: function() {
+        return {
+            global: shared.state,
+            changesMade: false,
+            questions: [],
+            questionsOriginal: [],
+            questionsForDropdown: [],
+            showingSaveChangesModal: false,
+            nextRoute: null,
+            userGroups: [],
+            groupsForDropdown: [],
+            questionActions: [
+                {
+                    text: "Forward to Question",
+                    value: "Forward to Question"
+                },
+                {
+                    text: "Forward to Group",
+                    value: "Forward to Group"
+                },
+            ],
+            questionTypes: [
+                {
+                    text: "Free Response",
+                    value: "Free Response"
+                },
+                {
+                    text: "Multiple Choice",
+                    value: "Multiple Choice"
+                }
+            ]
+        }
+    },
     methods: {
         checkForChanges(){
             if(this.changesMade) return;
@@ -281,7 +314,7 @@ module.exports = {
             util.fetch.call(this, '/api/groups/', {method: 'get'})
             .then(result => {
                 result.theJson.forEach(group => {
-                    groupsForDropdown.push({
+                    this.groupsForDropdown.push({
                         text: group.name,
                         value: group.name
                     });
@@ -369,39 +402,6 @@ module.exports = {
             next(false);
         }else{
             next();
-        }
-    },
-    data: function() {
-        return {
-            global: shared.state,
-            changesMade: false,
-            questions: [],
-            questionsOriginal: [],
-            questionsForDropdown: [],
-            showingSaveChangesModal: false,
-            nextRoute: null,
-            userGroups: [],
-            groupsForDropdown: [],
-            questionActions: [
-                {
-                    text: "Forward to Question",
-                    value: "Forward to Question"
-                },
-                {
-                    text: "Forward to Group",
-                    value: "Forward to Group"
-                },
-            ],
-            questionTypes: [
-                {
-                    text: "Free Response",
-                    value: "Free Response"
-                },
-                {
-                    text: "Multiple Choice",
-                    value: "Multiple Choice"
-                }
-            ]
         }
     }
 }
