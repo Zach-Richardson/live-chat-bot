@@ -127,19 +127,25 @@ module.exports = {
             util.fetch.call(this, '/api/groups/')
             .then( res => {
                 this.groups = res.theJson;
+                console.log('this.groups : ');
+                console.log(this.groups);
             });
         },
         deleteGroup: function(group) {
+            let defaultGroup = this.groups.find(group => group.name=='Default');
+            group.users.forEach(user => {
+                defaultGroup.users.push(user);
+            })
             this.groups.splice(this.groups.indexOf(group), 1);
             this.saveGroupData();
         },
         addToGroup: function(group, admin) {
-            group.users.push(admin);
             this.groups.forEach(group => {
                 if(group.users.indexOf(admin)!=-1){
                     group.users.splice(group.users.indexOf(admin), 1);
                 }
             });
+            this.groups[this.groups.indexOf(group)].users.push(admin);
             this.saveGroupData();
         },
         getGroupUsers: function(groupKey) {
@@ -147,11 +153,11 @@ module.exports = {
         },
         createNewGroup: function() {
             this.groups.push({name: this.newGroupName, users: []});
-            let options = {method:'post', body:{groups:this.groups}};
             this.saveGroupData();
+            this.showingNewGroupModal = false;
         },
         saveGroupData: function() {
-            let options = {method:'post', body:{groups:this.groups}};
+            const options = {method:'post', body:{groups:this.groups}};
             util.fetch.call(this, 'api/groups', options);
         }
     },

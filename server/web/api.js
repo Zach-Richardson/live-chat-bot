@@ -258,10 +258,10 @@ class AuthenticationAPIV1 extends APIHandler {
         }
 
         try {
-            const admins = (op === 'add')
+            const newAdmin = (op === 'add')
                 ? await this.server.bot.addAdministrator({addTag: tag, actorUserId: userId})
                 : await this.server.bot.removeAdministrator({removeId: id, actorUserId: userId});
-            res.status(200).json({ administrators: admins });
+            res.status(200).json(newAdmin);
             return;
         } catch (e) {
             console.log('problem in update administrators', e);
@@ -378,18 +378,21 @@ class GroupsAPIV1 extends APIHandler {
 
     async onGet(req, res){
         let groups = await relay.storage.get('live-chat-bot', 'groups');
-        if(!groups){
-            let groups = [
+        if(groups){
+            res.status(200).json(groups);
+        }else{
+            let newGroups = [
                 {
                     name:'Default',
                     users: []
                 }
             ];
             const admins = await this.server.bot.getAdministrators();
-            admins.map(admin => groups[0].users.push(admin));
-            relay.storage.set('live-chat-bot', 'groups', groups);
+            admins.map(admin => newGroups[0].users.push(admin));
+            relay.storage.set('live-chat-bot', 'groups', newGroups);
+            res.status(200).json(newGroups);
         }
-        res.status(200).json(groups);
+        
     }
 
     async onPost(req, res){

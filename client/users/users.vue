@@ -92,6 +92,7 @@ module.exports = {
             });
         },
         removeAdmin: function(id) {
+            this.admins.splice(this.admins.indexOf(this.admins.find(a => a.id==id)), 1);
             let options = { method: 'post', body: { op: 'remove', id }};
             util.fetch.call(this, '/api/auth/admins/v1', options)
             .then(res => {
@@ -110,18 +111,36 @@ module.exports = {
             util.fetch.call(this, '/api/auth/admins/v1', options)
             .then(res => {
                 if(res.ok) {
-                    this.admins = res.theJson;
+                    const newAdmin = res.theJson;
+                    this.admins.push(newAdmin);
                     this.newAdminTag = '';
                     this.tagError = '';
+                    console.log('this.groups.find(group => group.name==Default)');
+                    console.log(this.groups.find(group => group.name=='Default'));
+                    console.log('newAdmin : ');
+                    console.log(newAdmin);
+                    this.groups.find(group => group.name=='Default').users.push(newAdmin);
+                    this.saveGroupData();
                 }else{
                     this.tagError = util.mergeErrors(res.theJson);
                 }
             })
             .catch(err => console.log(err));
+            
         },
+        loadGroups: async function(admin) {
+            this.groups = (await util.fetch.call(this, '/api/groups/')).theJson;
+            console.log('this.groups : ');
+            console.log(this.groups);
+        },
+        saveGroupData: function() {
+            const options = {method:'post', body:{groups:this.groups}};
+            util.fetch.call(this, 'api/groups', options);
+        }
     },
-    mounted: function() {
-        this.getAdmins();
+    mounted: async function() {
+        await this.getAdmins();
+        await this.loadGroups();
         this.interval = setInterval(() => this.getAdmins(), REFRESH_POLL_RATE); 
     },
     beforeDestroy: function() {

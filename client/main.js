@@ -5,8 +5,6 @@ function main() {
     const SuiVue = require('semantic-ui-vue');
     const VueMq = require('vue-mq');
     const VueSocketIO = require('vue-socket.io');
-    console.log('VueRouter');
-    console.log(VueRouter);
     Vue.use(VueRouter);
     Vue.use(SuiVue.default);
     Vue.use(VueMq, {
@@ -15,8 +13,6 @@ function main() {
             bigScreen: Infinity
         }
     });
-    console.log('VueSocketIO');
-    console.log(VueSocketIO);
     Vue.use(new VueSocketIO({
         debug: true,
         connection: 'http://localhost:4096/'

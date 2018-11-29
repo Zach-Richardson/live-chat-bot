@@ -29,7 +29,7 @@ div [class*="pull right"] {
             <sui-grid-row>
                 <sui-grid-column :width="16"> 
                     <sui-label
-                        color="teal"
+                        color="blue"
                         pointing="right">Message</sui-label>                     
                     <sui-input 
                         :style="$mq | mq({
@@ -53,7 +53,7 @@ div [class*="pull right"] {
             <sui-grid-row>
                 <sui-grid-column :width="16">
                     <sui-label 
-                        color="teal"
+                        color="blue"
                         pointing="right">Open</sui-label>
                     <sui-input 
                         format="HH:MM:AM"
@@ -61,7 +61,7 @@ div [class*="pull right"] {
                         type="time"
                         @input="checkForChanges()"/>
                     <sui-label
-                        color="teal"
+                        color="blue"
                         pointing="right">Close</sui-label>
                     <sui-input 
                         format="HH:MM:AM"
@@ -71,7 +71,7 @@ div [class*="pull right"] {
                 </sui-grid-column>     
                 <sui-grid-column :width="16"> 
                     <sui-label
-                        color="teal"
+                        color="blue"
                         pointing="right">Message</sui-label>                     
                     <sui-input 
                         :style="$mq | mq({

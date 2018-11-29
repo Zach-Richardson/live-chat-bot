@@ -57,7 +57,7 @@ div [class*="pull right"] {
                             <sui-list-content>
                                 <sui-label
                                     pointing="right"
-                                    color="teal"
+                                    color="blue"
                                     style="vertical-align:middle">Type</sui-label>
                                 <sui-dropdown
                                     selection
@@ -67,7 +67,7 @@ div [class*="pull right"] {
                                     v-model="question.type" />
                                 <sui-label
                                     pointing="right"
-                                    color="teal"
+                                    color="blue"
                                     style="vertical-align:middle; margin-left: 10px;">Prompt</sui-label>
                                 <sui-input
                                     :style="$mq | mq({
@@ -89,7 +89,7 @@ div [class*="pull right"] {
                             <sui-grid-column>
                                 <sui-label
                                     pointing="right"
-                                    color="teal"
+                                    color="blue"
                                     style="vertical-align:middle">Choice</sui-label>
                                 <sui-input
                                     class="flexbox"
@@ -98,10 +98,11 @@ div [class*="pull right"] {
                                             bigScreen: 'width:90%' })"
                                     v-model="response.text"
                                     :value="response.text"
-                                    @input="checkForChanges()"/>                          
+                                    @input="checkForChanges()"/>     
+                                    <br />                     
                                 <sui-label
                                     pointing="right"
-                                    color="teal"
+                                    color="blue"
                                     style="vertical-align:middle; margin-left: 10px;">Action</sui-label>
                                 <sui-dropdown      
                                     selection
@@ -119,12 +120,13 @@ div [class*="pull right"] {
                                         v-model="response.actionOption"
                                         @input="checkForChanges()"/>
                                 </span>
-                                <span v-if="response.action==='Forward to Tag'">
-                                    <sui-input   
-                                        placeholder="tag"
-                                        :value="response.actionOption"
-                                        v-model="response.actionOption"
-                                        @input="updateTagData(response)"/>
+                                <span v-if="response.action==='Forward to Group'">
+                                    <sui-dropdown   
+                                        selection
+                                        placeholder="Group"
+                                        :options="groupsForDropdown"
+                                        v-model="question.responses[0].actionOption"
+                                        @input="checkForChanges()"/>
                                 </span>                                
                                 <sui-input
                                     type="color"
@@ -138,7 +140,7 @@ div [class*="pull right"] {
                                     style="vertical-align:middle"
                                     @click="deleteResponse(question, response)" />
                                 <p v-if="response.invalidTag" style="color: #ff0000;">
-                                    The tag "{{response.actionOption}}" does not exist in your organization.
+                                    The group "{{response.actionOption}}" does not exist.
                                 </p>
                             </sui-grid-column>
                         </sui-grid-row>
@@ -161,7 +163,7 @@ div [class*="pull right"] {
                             <sui-list-content style="color:#777">                          
                                 <sui-label
                                     pointing="right"
-                                    color="teal"
+                                    color="blue"
                                     style="vertical-align:middle">Action</sui-label>
                                 <sui-dropdown      
                                     selection
@@ -179,12 +181,13 @@ div [class*="pull right"] {
                                         v-model="question.responses[0].actionOption"
                                         @input="checkForChanges()"/>
                                 </span>
-                                <span v-if="question.responses[0].action==='Forward to Tag'">
-                                    <sui-input   
-                                        placeholder="tag"
-                                        :value="question.responses[0].actionOption"
+                                <span v-if="question.responses[0].action==='Forward to Group'">
+                                    <sui-dropdown   
+                                        selection
+                                        placeholder="Group"
+                                        :options="groupsForDropdown"
                                         v-model="question.responses[0].actionOption"
-                                        @input="updateTagData(question.responses[0])"/>
+                                        @input="checkForChanges()"/>
                                 </span>
                             </sui-list-content>
                         </sui-list-item>
@@ -275,9 +278,14 @@ module.exports = {
                 }
             });
 
-            util.fetch.call(this, '/api/tags/', {method: 'get'})
+            util.fetch.call(this, '/api/groups/', {method: 'get'})
             .then(result => {
-                this.tags = result.theJson.tags;
+                result.theJson.forEach(group => {
+                    groupsForDropdown.push({
+                        text: group.name,
+                        value: group.name
+                    });
+                })
             });
         },
         moveQuestionDown: function(question) {
@@ -353,14 +361,6 @@ module.exports = {
             }
             this.checkForChanges();
         },
-        updateTagData: function(response) {
-            const tag = this.tags.find(t => t.slug === response.actionOption)
-            response.invalidTag = !tag;
-            if(!response.invalidTag) {
-                response.tagId = tag.id;
-            }
-            this.checkForChanges();
-        }
     },
     beforeRouteLeave: function(to, from, next){
         if(this.changesMade){
@@ -380,15 +380,16 @@ module.exports = {
             questionsForDropdown: [],
             showingSaveChangesModal: false,
             nextRoute: null,
-            tags: [],
+            userGroups: [],
+            groupsForDropdown: [],
             questionActions: [
                 {
                     text: "Forward to Question",
                     value: "Forward to Question"
                 },
                 {
-                    text: "Forward to Tag",
-                    value: "Forward to Tag"
+                    text: "Forward to Group",
+                    value: "Forward to Group"
                 },
             ],
             questionTypes: [

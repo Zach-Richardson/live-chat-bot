@@ -37,8 +37,15 @@ class ForstaBot {
 
     async configureSocket(io){
         this.socketio = io;
+        // let sockets = {};
         this.socketio.on('connect', function (socket) {
-            console.log('connection recieved');
+            let s = socket;
+            socket.on('createConnection', function(data) {
+                console.log('s:');
+                console.log(s);
+                console.log('data');
+                console.log(data);
+            });
         });
     }
 
@@ -129,7 +136,7 @@ class ForstaBot {
             }
         }
         
-        //if this thread is waiting for an authorized live chat user to connect, connect it
+        //if this thread is waiting for an admin to connect, connect it
         if(threadStatus && threadStatus.waitingForTakeover){
             await this.handleDistTakeover(msg, dist);
             return;
@@ -527,15 +534,16 @@ class ForstaBot {
         const resolved = await this.resolveTags(tag);
         if (resolved.userids.length === 1 && resolved.warnings.length === 0) {
             const uid = resolved.userids[0];
+            let newAdminUser = (await this.getUsers([uid]))[0];
             const adminIds = await relay.storage.get('authentication', 'adminIds');
             if (!adminIds.includes(uid)) {
                 adminIds.push(uid);
                 await relay.storage.set('authentication', 'adminIds', adminIds);
             }
             await this.broadcastNotice({note: `ADDED <<${uid}>> to authorized users`, actorUserId});
-            return this.getAdministrators();
+            return { id: uid, label: this.fqLabel(newAdminUser) };
         }
-        throw { statusCode: 400, info: { tag: ['not a recognized tag, please try again'] } }; 
+        throw { statusCode: 400, info: { tag: ['Not a recognized tag. Please try again!'] } }; 
     }
 
     async removeAdministrator({removeId, actorUserId}) {
@@ -543,13 +551,14 @@ class ForstaBot {
         const idx = adminIds.indexOf(removeId);
 
         if (idx < 0) {
-            throw { statusCode: 400, info: { id: ['administrator id not found'] } };
+            throw { statusCode: 400, info: { id: ['Administrator id not found'] } };
         }
+        let removingAdminUser = (await this.getUsers([adminIds[idx]]))[0];
         adminIds.splice(idx, 1);
         await this.broadcastNotice({note: `REMOVING <<${removeId}>> from authorized users`, actorUserId});
         await relay.storage.set('authentication', 'adminIds', adminIds);
 
-        return this.getAdministrators();
+        return { id: removingAdminUser.id, label: this.fqLabel(removingAdminUser) };
     }
 }
 

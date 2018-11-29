@@ -155,6 +155,7 @@
 <script>
 'use strict'
 const moment = require('moment');
+let shared = require('../globalState');
 
 module.exports = {
     data: () => ({ 
@@ -167,12 +168,10 @@ module.exports = {
     }),
     sockets: {
         connect: function () {
-            console.log('socket connected')
+            this.$socket.emit('createConnection', this.global.userId);
         },
         message: function (msg) {
-            console.log('message recieved !').then(res => {
-                console.log(res);
-            });
+            console.log('message recieved !');
             console.log(msg);
         }
     },

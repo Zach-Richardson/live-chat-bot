@@ -93,8 +93,10 @@ function requestAuth() {
     .then(result => {
         this.loading = false;
         if (result.ok) {
-            const { id } = result.theJson;
-            this.global.userId = id;
+            const userId = result.theJson.id;
+            console.log('/api/auth/login/v1 result.theJson.id : ');
+            console.log(result.theJson.id);
+            this.global.userId = userId;
             this.global.loginTag = tag;
             this.$router.push({ name: 'loginCode', query: this.$route.query });
             return false;

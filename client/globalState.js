@@ -3,7 +3,14 @@ var jwtDecode = require('jwt-decode');
 var state = {
     onboardStatus: undefined,
     passwordSet: undefined,
-    userId: undefined,
+    myId: undefined,
+    get userId() {
+        return localStorage.getItem('userId') || '';
+    },
+    set userId(value) {
+        if (value) localStorage.setItem('userId', value);
+        else localStorage.removeItem('userId');
+    },
     get loginTag() {
         return localStorage.getItem('loginTag') || '';
     },
