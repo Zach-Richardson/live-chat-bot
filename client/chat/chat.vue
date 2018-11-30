@@ -173,7 +173,11 @@ module.exports = {
         message: function (msg) {
             console.log('message recieved !');
             console.log(msg);
-        }
+        },
+        connectOperator: function (msg) {
+            console.log('connectMessageHistory event recieved, msg: ');
+            console.log(msg);
+        },
     },
     methods: {
         select: function(thread) {

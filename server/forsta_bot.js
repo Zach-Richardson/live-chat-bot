@@ -32,27 +32,23 @@ class ForstaBot {
         await this.msgReceiver.connect();
 
         this.threadStatus = {};
+        this.sockets = {};
         this.outgoingThreadId = uuid4();
     }
 
     async configureSocket(io){
-        this.notSockets = {
-            'itsworkingreallygood!':true
-        };
-        io.on.call(this, 'connect', function (socket) {
+        let newSocketFunction = this.addNewSocket.bind(this);
+        io.on('connect', function (socket) {
             let s = socket;
-            console.log('this.notSockets : ');
-            console.log(this.notSockets);
-            socket.on.call(this, 'createConnection', function(userId) {
-                console.log('creating the socket...');
-                // console.log('socket : ');
-                // console.log(s);
-                this.notSockets[userId] = s;
-                console.log('this.sockets : ');
-                console.log(this.sockets);
+            socket.on('createConnection', function(userId) {
+                newSocketFunction(s, userId);
             });
         });
         this.socketio = io;
+    }
+
+    async addNewSocket(socket, userId){
+        this.sockets[userId] = socket;
     }
 
     async stop() {
@@ -94,6 +90,8 @@ class ForstaBot {
     async onMessage(ev) {
         const envelope = JSON.parse(ev.data.message.body);
         const msg = envelope.find(x => x.version === 1);
+        console.log('message recieved ! ');
+        console.log(msg);
         if (!msg) {
             console.error('Dropping unsupported message:', envelope);
             return;
@@ -111,8 +109,8 @@ class ForstaBot {
             this.threadStatus[threadId] = {
                 questions,
                 currentQuestion: questions[0],
-                waitingForTakeover: null,
-                waitingForResponse: null,
+                waitingForTakeover: false,
+                waitingForResponse: false,
                 connected: false,
                 responses: [],
                 sentOOOMessage: false,
@@ -130,17 +128,18 @@ class ForstaBot {
         }
 
         //if we are outside of business hours send the out of office message
-        if(this.outOfOffice(businessInfo)){
-            if(threadStatus && threadStatus.sentOOOMessage) {
-                await this.sendMessage(dist, threadId, businessInfo.outOfOfficeMessage);
-                threadStatus.sentOOOMessage = true;
-            }
+        // if(this.outOfOffice(businessInfo)){
+        //     console.log('wtf 1');
+        //     if(threadStatus && threadStatus.sentOOOMessage) {
+        //         await this.sendMessage(dist, threadId, businessInfo.outOfOfficeMessage);
+        //         threadStatus.sentOOOMessage = true;
+        //     }
 
-            if(businessInfo.action === 'Forward to Group') {
-                const oooDist = await this.resolveTags(businessInfo.promptTag);
-                await this.handleDistTakeover(msg, oooDist);
-            }
-        }
+        //     if(businessInfo.action === 'Forward to Group') {
+        //         const oooDist = await this.resolveTags(businessInfo.promptTag);
+        //         await this.handleDistTakeover(msg, oooDist);
+        //     }
+        // }
         
         //if this thread is waiting for an admin to connect, connect it
         if(threadStatus && threadStatus.waitingForTakeover){
@@ -149,6 +148,9 @@ class ForstaBot {
         }
         
         if(threadStatus && threadStatus.waitingForResponse){
+            console.log('it made it in guy');
+            console.log('threadStatus : ');
+            console.log(threadStatus);
             const validResponse = await this.handleResponse(msg, dist, users, businessInfo);
             if(!validResponse) return;
         }
@@ -191,13 +193,12 @@ class ForstaBot {
                 await this.sendMessage(dist, msg.threadId, noForwardError);
                 return;
             }
-            const forwardMessage = this.getForwardMessage(msg);
+            //const forwardMessage = this.getForwardMessage(msg);
             group.users.forEach(user => {
-                //emitted object schemas should match librelay env schema
-                console.log('this.sockets : ');
-                console.log(this.sockets);
-                this.sockets[user.id].emit('connectMessageHistory', forwardMessage);
-                this.sockets[user.id].emit('connectButton', 'this is the message that should have the connect button');
+                //if the operator is online
+                if(this.sockets[user.id]){
+                    this.sockets[user.id].emit('connectOperator', threadStatus);
+                }
             });
 
             threadStatus.waitingForTakeover = {
@@ -243,7 +244,11 @@ class ForstaBot {
 
     parseResponse(msg){
         const threadStatus = this.threadStatus[msg.threadId];
+        console.log('parseResponse threadStatus : ');
+        console.log(threadStatus);
         const currentQuestion = threadStatus.currentQuestion;
+        console.log('parseResponse currentQuestion : ');
+        console.log(currentQuestion);
 
         if(currentQuestion.type === 'Free Response'){
             threadStatus.responses.push({ 
@@ -254,17 +259,11 @@ class ForstaBot {
         }     
 
         //check that a response is available
-        console.log('msg.data.action : ');
-        console.log(msg.data.action);
         const responseNumber = Number(msg.data.action);   
         if(responseNumber > currentQuestion.responses.length - 1 || responseNumber < 0){
             return undefined;
         }
         //if it is, respond
-        console.log('responseNumber : ');
-        console.log(responseNumber);
-        console.log('currentQuestion:');
-        console.log(currentQuestion);
         const responseText = currentQuestion.responses[responseNumber].text;
         threadStatus.responses.push({ 
             prompt: currentQuestion.prompt, 
