@@ -14,41 +14,249 @@ class ForstaBot {
 
     async start() {
         this.ourId = await relay.storage.getState('addr');
-        
         if (!this.ourId) {
             console.warn("bot is not yet registered");
             return;
         }
+        //database
         this.pgStore = new PGStore('live_chat');
         await this.pgStore.initialize();
+        //atlas
         this.atlas = await BotAtlasClient.factory();
         this.getUsers = cache.ttl(60, this.atlas.getUsers.bind(this.atlas));
         this.resolveTags = cache.ttl(60, this.atlas.resolveTags.bind(this.atlas));
+        //relay
         this.msgReceiver = await relay.MessageReceiver.factory();
+        this.msgSender = await relay.MessageSender.factory();
         this.msgReceiver.addEventListener('keychange', this.onKeyChange.bind(this));
         this.msgReceiver.addEventListener('message', ev => this.onMessage(ev), null);
         this.msgReceiver.addEventListener('error', this.onError.bind(this));
-        this.msgSender = await relay.MessageSender.factory();
         await this.msgReceiver.connect();
-
+        //bot
+        this.getBusinessInfo = cache.ttl(120, () => relay.storage.get('live-chat-bot', 'business-info'));
+        this.getQuestions = cache.ttl(120, () => relay.storage.get('live-chat-bot', 'questions'));
+        this.getGroups = cache.ttl(120, () => relay.storage.get('live-chat-bot', 'groups'));
         this.threadStatus = {};
         this.sockets = {};
         this.outgoingThreadId = uuid4();
     }
 
     async configureSocket(io){
-        let newSocketFunction = this.addNewSocket.bind(this);
+        let addSocket = (function (socket, userId){
+            this.sockets[userId] = socket;
+        }).bind(this);
         io.on('connect', function (socket) {
             let s = socket;
             socket.on('createConnection', function(userId) {
-                newSocketFunction(s, userId);
+                addSocket(s, userId);
             });
         });
         this.socketio = io;
+    }    
+
+    async onMessage(event) {
+        const messageBody = JSON.parse(event.data.message.body);
+        const msg = messageBody.find(x => x.version === 1);
+        if(!msg || (msg.messageType == 'control' && msg.data.control == 'readMark')){
+            if(!msg) console.log('Dropping unsupported message:', event);
+            return;
+        }
+
+        this.saveToMessageHistory(msg, event.data.message.attachments);
+        if(!this.threadStatus[msg.threadId]) {
+            await this.initializeNewThread(msg);
+        }else{            
+            await this.stepThreadState(this.threadStatus[msg.threadId], msg);
+        }
     }
 
-    async addNewSocket(socket, userId){
-        this.sockets[userId] = socket;
+    async initializeNewThread(msg){
+        const dist = await this.resolveTags(msg.distribution.expression);
+        // const businessInfo = await this.getBusinessInfo();
+        // if(this.outOfOffice(businessInfo)){
+        //     if(businessInfo.action === 'Forward to Group') {
+        //         //connect the user to the configured group
+        //     }else{
+        //         await this.sendMessage(dist, msg.threadId, businessInfo.outOfOfficeMessage);
+        //     }
+        //     return;
+        // }
+        const questions = await this.getQuestions();        
+        //assuming that only the live-chat-bot and ephemeral user are in the thread
+        const ephUser = (await this.getUsers(dist.userids)).filter(user => user.id != this.ourId)[0];
+        const botUser = (await this.getUsers(dist.userids)).filter(user => user.id == this.ourId)[0];
+        this.threadStatus[msg.threadId] = {
+            threadId: msg.threadId,
+            dist,
+            timeStarted: (new Date()).toUTCString(),
+            timeEnded: null,
+            questions,
+            currentQuestion: questions[0],
+            messageHistory: [],
+            operator: null,
+            onHold: false,
+            bot: {
+                name: this.fqName(botUser),
+                id: botUser.id,
+                gravatarHash: botUser.gravatar_hash
+            },
+            user: {
+                name: this.fqName(ephUser),
+                id: ephUser.id,
+                gravatarHash: ephUser.gravatar_hash
+            }
+        };
+        await this.saveToThreadMessageHistory(msg);
+        this.sendQuestion(dist, msg.threadId, questions[0]);
+    }
+
+    async stepThreadState(threadStatus, msg){
+        if(threadStatus.onHold){
+            let onHoldMessage = 'Waiting for an operator to connect...';
+            this.sendMessage(threadStatus.dist, threadStatus.threadId, onHoldMessage);
+            return;
+        }        
+        let {action, actionOption} = threadStatus.currentQuestion.type == 'Multiple Choice'
+        ?threadStatus.currentQuestion.responses[parseInt(msg.data.action)]
+        :threadStatus.currentQuestion.responses[0];
+        if(action == 'Forward to Question'){
+            const questionNumber = parseInt(actionOption.split(' ')[1])-1;
+            threadStatus.currentQuestion = threadStatus.questions[questionNumber];
+            this.sendQuestion(threadStatus.dist, threadStatus.threadId, threadStatus.currentQuestion);
+        }else if(action == 'Forward to Group'){
+            let group = (await this.getGroups()).find(group => group.name == actionOption);
+            group.users.forEach(user => {
+                if(this.sockets[user.id]){
+                    this.sockets[user.id].emit('operatorConnectionRequest', threadStatus);
+                }
+            });
+            threadStatus.onHold = true;
+            const operatorConnectMessage = 'A live chat operator will be with you shortly';
+            this.sendMessage(threadStatus.dist, threadStatus.threadId, operatorConnectMessage);
+        }
+    }
+
+    async sendQuestion(dist, threadId, question){
+        let outgoingMessage = null;
+        if(question.type=="Multiple Choice"){
+            const actions = question.responses.map( 
+                (response, index) => { 
+                    return { title: response.text, color: response.color, action: index };
+                }
+            );
+            outgoingMessage = await this.sendActionMessage(dist, threadId, question.prompt, actions);
+        }else if(question.type=="Free Response"){
+            outgoingMessage = await this.sendMessage(dist, threadId, question.prompt);
+        }
+        let messageBody = JSON.parse(outgoingMessage.message.dataMessage.body)[0];
+        await this.saveToThreadMessageHistory(messageBody);
+        this.saveToMessageHistory(messageBody);
+    }
+
+    async saveToThreadMessageHistory(message){
+        let threadStatus = this.threadStatus[message.threadId];
+        let sender = this.fqName((await this.getUsers([message.sender.userId]))[0]);
+        let text = message.data.body
+        ? message.data.body[0].value
+        : threadStatus.currentQuestion.responses[parseInt(message.data.action)].text;
+        let formattedMessage = {
+            text,
+            time: moment().format('HH:MM:SS'),
+            sender,
+            beforeConnect: true
+        };
+        threadStatus.messageHistory.push(formattedMessage);
+    }
+
+    async saveToMessageHistory(message, attachments=[]) {
+        const sender = (await this.getUsers([message.sender.userId]))[0];
+        const distribution = await this.resolveTags(message.distribution.expression);
+        const recipients = await this.getUsers(distribution.userids);
+        //message text
+        const tempBody = message.data && message.data.body;
+        const tempText = tempBody && tempBody.find(x => x.type === 'text/plain');
+        const messageText = (tempText && tempText.value) || '';        
+        //attachments
+        const attachmentMeta = (message.data && message.data.attachments) || [];
+        if (attachments.length != attachmentMeta.length) {
+            console.error('Received mismatched attachments with message:', message);
+            return;
+        }
+        let attachmentIds = attachments.map(x => uuid4());
+
+        for (let i = 0; i < attachmentIds.length; i++) {
+            this.pgStore.addAttachment({
+                id: attachmentIds[i],
+                data: attachments[i].data,
+                type: attachmentMeta[i].type,
+                name: attachmentMeta[i].name,
+                messageId: message.messageId
+            });
+        }
+
+        this.pgStore.addMessage({
+            payload: JSON.stringify(message),
+            received: new Date(Date.now()),
+            distribution: JSON.stringify(distribution),
+            messageId: message.messageId,
+            threadId: message.threadId,
+            senderId: message.sender.userId,
+            senderLabel: this.fqLabel(sender),
+            recipientIds: recipients.map(user => user.id),
+            recipientLabels: recipients.map(user => this.fqLabel(user)),
+            attachmentIds,
+            tsMain: messageText,
+            tsTitle: message.threadTitle
+        });        
+    }
+
+    outOfOffice(businessInfo){
+        if(!businessInfo) return false;
+
+        const hoursNow = moment().hours();
+        const minsNow = moment().minutes();
+        const openHours = Number(businessInfo.open.split(':')[0]);
+        const openMins = Number(businessInfo.open.split(':')[1]);
+        const closeMins = Number(businessInfo.close.split(':')[1]);
+        let closeHours = Number(businessInfo.close.split(':')[0]);
+
+        if(openHours > closeHours) closeHours += 24;
+        if( (hoursNow < openHours) || (hoursNow === openHours && minsNow < openMins) ){
+            return true;
+        }
+        if( (hoursNow > closeHours) || (hoursNow === closeHours && minsNow > closeMins) ){
+            return true;
+        }
+        return false;
+    }
+
+    async sendMessage(dist, threadId, text){
+        return this.msgSender.send({
+            distribution: dist,
+            threadId: threadId,
+            html: `${ text }`,
+            text: text
+        }).catch(err => console.log(err));
+    }
+
+    async sendResponse(dist, threadId, msgId, text){
+        return this.msgSender.send({
+            distribution: dist,
+            threadId: threadId,
+            messageRef: msgId,
+            html: `${ text }`,
+            text: text,
+        }).catch(err => console.log(err));
+    }
+
+    async sendActionMessage(dist, threadId, text, actions){
+        return this.msgSender.send({
+            distribution: dist,
+            threadId: threadId,
+            html: `${ text }`,
+            text: text,
+            actions
+        }).catch(err => console.log(err));
     }
 
     async stop() {
@@ -85,288 +293,6 @@ class ForstaBot {
 
     fqLabel(user) { 
         return `${this.fqTag(user)} (${this.fqName(user)})`; 
-    }
-
-    async onMessage(ev) {
-        const envelope = JSON.parse(ev.data.message.body);
-        const msg = envelope.find(x => x.version === 1);
-        console.log('message recieved ! ');
-        console.log(msg);
-        if (!msg) {
-            console.error('Dropping unsupported message:', envelope);
-            return;
-        }
-
-        const businessInfo = await relay.storage.get('live-chat-bot', 'business-info');
-        const questions = await relay.storage.get('live-chat-bot', 'questions');        
-        const dist = await this.resolveTags(msg.distribution.expression);
-        const users = await this.getUsers(dist.userids);
-
-        const threadId = msg.threadId;
-        let threadStatus = this.threadStatus[threadId];
-
-        if(!msg.data.action && !threadStatus) {            
-            this.threadStatus[threadId] = {
-                questions,
-                currentQuestion: questions[0],
-                waitingForTakeover: false,
-                waitingForResponse: false,
-                connected: false,
-                responses: [],
-                sentOOOMessage: false,
-            };
-            threadStatus = this.threadStatus[threadId];
-        }
-        
-        const received = new Date(ev.data.timestamp);
-        const attachmentData = ev.data.message.attachments || [];
-        this.saveToMessageHistory(received, envelope, msg, attachmentData);
-
-        //if the live chat bot is just relaying and recording messages, return with no response
-        if(threadStatus && threadStatus.connected) {
-            return;
-        }
-
-        //if we are outside of business hours send the out of office message
-        // if(this.outOfOffice(businessInfo)){
-        //     console.log('wtf 1');
-        //     if(threadStatus && threadStatus.sentOOOMessage) {
-        //         await this.sendMessage(dist, threadId, businessInfo.outOfOfficeMessage);
-        //         threadStatus.sentOOOMessage = true;
-        //     }
-
-        //     if(businessInfo.action === 'Forward to Group') {
-        //         const oooDist = await this.resolveTags(businessInfo.promptTag);
-        //         await this.handleDistTakeover(msg, oooDist);
-        //     }
-        // }
-        
-        //if this thread is waiting for an admin to connect, connect it
-        if(threadStatus && threadStatus.waitingForTakeover){
-            await this.handleDistTakeover(msg, dist);
-            return;
-        }
-        
-        if(threadStatus && threadStatus.waitingForResponse){
-            console.log('it made it in guy');
-            console.log('threadStatus : ');
-            console.log(threadStatus);
-            const validResponse = await this.handleResponse(msg, dist, users, businessInfo);
-            if(!validResponse) return;
-        }
-
-        const currentQuestion = threadStatus.currentQuestion;
-        if(currentQuestion.type === 'Free Response') {
-            const prompt = currentQuestion.prompt;
-            threadStatus.waitingForResponse = true;
-            await this.sendMessage(dist, threadId, prompt);
-        } else {
-            const prompt = currentQuestion.prompt;
-            const actions = currentQuestion.responses.map( 
-                (response, index) => { 
-                    return { title: response.text, color: response.color, action: index };
-                }
-            );
-            this.threadStatus[threadId].waitingForResponse = true;            
-            await this.sendActionMessage(dist, threadId, prompt, actions);
-        }
-    }
-
-    async handleResponse(msg, dist, users, businessInfo){
-        const threadStatus = this.threadStatus[msg.threadId];
-        const response = this.parseResponse(msg, threadStatus);
-        
-        if(!response.action){
-            const noActionError = `ERROR: response action not configured !`;
-            await this.sendMessage(dist, msg.threadId, noActionError);
-            this.questions = undefined;
-            return;
-        }
-
-        threadStatus.waitingForResponse = false;
-
-        if(response.action === "Forward to Group") {
-            let groups = await relay.storage.get('live-chat-bot', 'groups');
-            let group = groups.find(group => group.name == response.actionOption);
-            if(!group){
-                const noForwardError = `ERROR: Forwarding group does not exist.`;
-                await this.sendMessage(dist, msg.threadId, noForwardError);
-                return;
-            }
-            //const forwardMessage = this.getForwardMessage(msg);
-            group.users.forEach(user => {
-                //if the operator is online
-                if(this.sockets[user.id]){
-                    this.sockets[user.id].emit('connectOperator', threadStatus);
-                }
-            });
-
-            threadStatus.waitingForTakeover = {
-                userTagId: msg.sender.id
-            };
-            return;
-        }else if(response.action === "Forward to Question") {
-            let questionNumber = Number(response.actionOption.split(' ')[1]);
-            threadStatus.currentQuestion = threadStatus.questions[questionNumber-1];
-        }
-
-        return true;
-    }
-
-    getForwardMessage(msg) {
-        const responses = this.threadStatus[msg.threadId].responses;
-        let forwardMessage = `A live chat user is trying to get in touch with you. Here are their responses:\n`;
-        responses.forEach(response => {
-            forwardMessage = `${forwardMessage}\n\n${response.prompt}\n\t${response.response}`;
-        });
-        return `${forwardMessage}\n\nClick the "Connect" button to chat with this user.`;
-    }
-
-    async handleDistTakeover(msg, forwardingDist){
-        const threadId = msg.data.action;
-        const chatUserTagId = this.threadStatus[threadId].waitingForTakeover.userTagId;
-        const distMemberUser = await this.atlas.fetch(`/v1/user/${msg.sender.userId}/`);
-        const chatBotUser = await this.atlas.fetch(`/v1/user/${this.ourId}/`);
-        const newDist = await this.resolveTags(`(<${chatUserTagId}>+<${distMemberUser.tag.id}>+<${chatBotUser.tag.id}>)`);
-        
-        forwardingDist.userids = forwardingDist.userids.filter(id => id != distMemberUser.id);
-
-        await this.sendMessage(
-            newDist, 
-            msg.data.action, 
-            `You are now connected with ${this.fqName(distMemberUser)}`,
-        );        
-
-        this.threadStatus[threadId].waitingForTakeover = false;        
-        this.threadStatus[threadId].connected = true;
-    }
-
-
-    parseResponse(msg){
-        const threadStatus = this.threadStatus[msg.threadId];
-        console.log('parseResponse threadStatus : ');
-        console.log(threadStatus);
-        const currentQuestion = threadStatus.currentQuestion;
-        console.log('parseResponse currentQuestion : ');
-        console.log(currentQuestion);
-
-        if(currentQuestion.type === 'Free Response'){
-            threadStatus.responses.push({ 
-                prompt: currentQuestion.prompt, 
-                response: msg.data.body[0].value 
-            });
-            return currentQuestion.responses[0];
-        }     
-
-        //check that a response is available
-        const responseNumber = Number(msg.data.action);   
-        if(responseNumber > currentQuestion.responses.length - 1 || responseNumber < 0){
-            return undefined;
-        }
-        //if it is, respond
-        const responseText = currentQuestion.responses[responseNumber].text;
-        threadStatus.responses.push({ 
-            prompt: currentQuestion.prompt, 
-            response: responseText 
-        });
-        return currentQuestion.responses[responseNumber];
-    }
-
-    async saveToMessageHistory(received, envelope, message, attachmentData) {
-        const sender = (await this.getUsers([message.sender.userId]))[0];
-        const senderLabel = this.fqLabel(sender);
-        const distribution = await this.resolveTags(message.distribution.expression);
-        const recipients = await this.getUsers(distribution.userids);
-        const recipientIds = recipients.map(user => user.id);
-        const recipientLabels = recipients.map(user => this.fqLabel(user));
-        const tempBody = message.data && message.data.body;
-        const tempText = tempBody && tempBody.find(x => x.type === 'text/plain');
-        const messageText = (tempText && tempText.value) || '';
-
-        const attachmentMeta = (message.data && message.data.attachments) || [];
-        if (attachmentData.length != attachmentMeta.length) {
-            console.error('Received mismatched attachments with message:', envelope);
-            return;
-        }
-        let attachmentIds = attachmentData.map(x => uuid4());
-
-        await this.pgStore.addMessage({
-            payload: JSON.stringify(envelope),
-            received,
-            distribution: JSON.stringify(distribution),
-            messageId: message.messageId,
-            threadId: message.threadId,
-            senderId: message.sender.userId,
-            senderLabel,
-            recipientIds,
-            recipientLabels,
-            attachmentIds,
-            tsMain: messageText,
-            tsTitle: message.threadTitle
-        });
-
-        for (let i = 0; i < attachmentIds.length; i++) {
-            await this.pgStore.addAttachment({
-                id: attachmentIds[i],
-                data: attachmentData[i].data,
-                type: attachmentMeta[i].type,
-                name: attachmentMeta[i].name,
-                messageId: message.messageId
-            });
-        }
-    }
-
-    outOfOffice(businessInfo){
-        if(!businessInfo) return false;
-
-        const hoursNow = moment().hours();
-        const minsNow = moment().minutes();
-        const openHours = Number(businessInfo.open.split(':')[0]);
-        const openMins = Number(businessInfo.open.split(':')[1]);
-        const closeMins = Number(businessInfo.close.split(':')[1]);
-        let closeHours = Number(businessInfo.close.split(':')[0]);
-
-        if(openHours > closeHours) closeHours += 24;
-        if( (hoursNow < openHours) || (hoursNow === openHours && minsNow < openMins) ){
-            return true;
-        }
-        if( (hoursNow > closeHours) || (hoursNow === closeHours && minsNow > closeMins) ){
-            return true;
-        }
-        return false;
-    }
-
-    async sendMessage(dist, threadId, text){
-        return this.msgSender.send({
-            distribution: dist,
-            threadId: threadId,
-            html: `${ text }`,
-            text: text
-        }).then(res => {
-            console.log(res);
-        });
-    }
-
-    async sendResponse(dist, threadId, msgId, text){
-        return this.msgSender.send({
-            distribution: dist,
-            threadId: threadId,
-            messageRef: msgId,
-            html: `${ text }`,
-            text: text,
-        });
-    }
-
-    async sendActionMessage(dist, threadId, text, actions, threadTitle){
-        const title = threadTitle || '';
-        return this.msgSender.send({
-            distribution: dist,
-            threadId: threadId,
-            html: `${ text }`,
-            text: text,
-            actions, 
-            threadTitle: title
-        });
     }
     
     forgetStaleNotificationThreads() {

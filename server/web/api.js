@@ -286,25 +286,18 @@ class QuestionsAPIV1 extends APIHandler {
                 {
                     prompt: "Hello, I am the live chat bot! Can I help you?",
                     type: "Multiple Choice",
-                    editing: false,
-                    hovering: false,
-                    color: '#F08080',
                     responses: [
                         {
                             text: "Yes",
                             action: "Forward to Question",
                             actionOption: "Question 1",
-                            distId: null,
                             color: '#B9D3EE',
-                            editing: false
                         },
                         {
                             text: "No",
                             action: "Forward to Question",
                             actionOption: "Question 1",
-                            distId: null,
                             color: '#F08080',
-                            editing: false
                         }
                     ]
                 }

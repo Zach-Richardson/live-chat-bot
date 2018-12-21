@@ -19,9 +19,9 @@
                             :class="{
                                 flashingblue: !thread.seen, 
                                 bluebackground: selectedThread==thread,
-                                greybackground: !thread.connected,
-                                darkgreybackground: !thread.connected&&selectedThread==thread,
-                                hoverblue: thread.seen&&selectedThread!=thread&&thread.connected
+                                greybackground: !thread.userIsOnline,
+                                darkgreybackground: !thread.userIsOnline&&selectedThread==thread,
+                                hoverblue: thread.seen&&selectedThread!=thread&&thread.userIsOnline
                             }">     
                             <sui-grid :columns="3">
                                 <sui-grid-column :width="3" @click="select(thread)">
@@ -34,11 +34,11 @@
                                         <h4 
                                             style="margin-bottom:2px;" 
                                             v-text="thread.username"
-                                            v-if="thread.connected"></h4>
+                                            v-if="thread.userIsOnline"></h4>
                                         <h4 
                                             style="margin-bottom:2px;font-weight:0.8em" 
                                             v-text="thread.username.concat(' (disconnected)')"
-                                            v-if="!thread.connected"></h4>
+                                            v-if="!thread.userIsOnline"></h4>
                                         <span 
                                             style="color:#afafaf" 
                                             v-text="newestMessage(thread)">
@@ -83,9 +83,15 @@
                                 <sui-list-content
                                     style="text-align:center;padding:9px" 
                                     v-if="isMessageAfterConnect(message)">
-                                    <sui-label
+                                    <sui-button
                                         color="blue"
-                                        size="large">Operator connection 5 minutes ago</sui-label>
+                                        size="large"
+                                        @click="emitOperatorConnectResponse(selectedThread)"
+                                        content="Connect"/>
+                                    <sui-label
+                                        v-if="selectedThread.connected"
+                                        color="blue"
+                                        size="large">Operator connection 0 minutes ago</sui-label>
                                 </sui-list-content>
                                 <sui-grid>
                                     <sui-grid-row
@@ -164,19 +170,28 @@ module.exports = {
             messages: [],
         },
         message: '',
-        threads: require('./mock.js').mockThreadData 
+        threads: []
+        //threads: require('./mock.js').mockThreadData 
     }),
     sockets: {
         connect: function () {
+            //initializes the socket on page load
             this.$socket.emit('createConnection', this.global.userId);
         },
         message: function (msg) {
             console.log('message recieved !');
             console.log(msg);
         },
-        connectOperator: function (msg) {
-            console.log('connectMessageHistory event recieved, msg: ');
-            console.log(msg);
+        operatorConnectionRequest: function (threadStatus) {
+            let thread = {
+                username: threadStatus.user.name,
+                timeConnected: '0 minutes',
+                seen: false,
+                connected: false,
+                userIsOnline: true,
+                messages: threadStatus.messageHistory
+            };
+            this.threads.push(thread);
         },
     },
     methods: {
@@ -220,6 +235,9 @@ module.exports = {
         },
         startVideoCall: function() {
 
+        },
+        emitOperatorConnectResponse: function(){
+            this.$socket.emit('operatorConnectResponse');
         }
     },
     mounted: async function() {

@@ -169,7 +169,7 @@ div [class*="pull right"] {
                                     selection
                                     :options="questionActions"
                                     v-model="question.responses[0].action"
-                                    @input="updateAction(question.responses[0].action)"/>
+                                    @input="updateAction(question.responses[0])"/>
                                 <sui-icon
                                     name="arrow right"
                                     size="large" />
@@ -370,7 +370,6 @@ module.exports = {
                 text: "New Response",
                 action: "Forward to Question",
                 actionOption: `Question ${this.questions.indexOf(question)+1}`,
-                distId: null,
                 color: '#00ff00'
             });
             this.changesMade = true;
