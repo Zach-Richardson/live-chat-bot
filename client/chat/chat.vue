@@ -9,9 +9,8 @@
         
         <sui-grid>
             <sui-grid-row :cols="2">
+                <!-- Thread List -->
                 <sui-grid-column :width="6" style="padding-right:0px">
-
-                    <!-- Thread List -->
                     <sui-list divided relaxed style="overflow-x:hidden; overflow-y: scroll; height:650px">
                         <sui-list-item
                             v-for="thread in threads"
@@ -26,18 +25,18 @@
                             <sui-grid :columns="3">
                                 <sui-grid-column :width="3" @click="select(thread)">
                                     <sui-grid-row>
-                                        <sui-icon size="huge" name="circle" />
+                                        <img :src="getAvatarURL(thread.user)" />
                                     </sui-grid-row>
                                 </sui-grid-column>
                                 <sui-grid-column :width="8" @click="select(thread)">
                                     <sui-grid-row>
                                         <h4 
                                             style="margin-bottom:2px;" 
-                                            v-text="thread.username"
+                                            v-text="thread.user.name"
                                             v-if="thread.userIsOnline"></h4>
                                         <h4 
                                             style="margin-bottom:2px;font-weight:0.8em" 
-                                            v-text="thread.username.concat(' (disconnected)')"
+                                            v-text="thread.user.name.concat(' (disconnected)')"
                                             v-if="!thread.userIsOnline"></h4>
                                         <span 
                                             style="color:#afafaf" 
@@ -63,47 +62,40 @@
 
                 <!-- Message Window -->
                 <sui-grid-column :width="10" style="padding-left:0px">
-
-                    <sui-container >
-                        <sui-list
-                            relaxed
-                            id="messageWindow"
-                            style="overflow-x:hidden; overflow-y: scroll; height:612px;" >
-                            <sui-list-item>
-                                <sui-list-content 
-                                    style="text-align:center;padding:7px" 
-                                    class="lightbluebackground"
-                                    v-if="selectedThread.messages.length!=0">
-                                    <sui-label
-                                        color="blue"
-                                        size="large">Initial connection 10 minutes ago</sui-label>
-                                </sui-list-content>
-                            </sui-list-item>
-                            <sui-list-item v-for="message in selectedThread.messages">
+                    <sui-container
+                        v-if="!selectedThread"
+                        style="text-align:center;height:612px;">
+                        <sui-label
+                            color="grey"
+                            size="large"
+                            style="margin-top:50%">Thread not selected!</sui-label>
+                    </sui-container>
+                    <sui-container
+                        id="messageWindow" 
+                        v-else
+                        style="overflow-x:hidden; overflow-y: scroll; height:612px;">
+                        <div v-if="selectedThread" 
+                            style="text-align:center;
+                            background-color:rgb(165, 199, 223);
+                            padding-top:10px">
+                            <sui-label
+                                color="blue"
+                                size="large">Connection Request at {{selectedThread.timeStarted}}</sui-label>
+                        </div>
+                        <sui-list relaxed style="background-color:rgb(165, 199, 223);margin-top:0px">
+                            <sui-list-item v-for="message in selectedThread.messageHistory">
                                 <sui-list-content
-                                    style="text-align:center;padding:9px" 
-                                    v-if="isMessageAfterConnect(message)">
-                                    <sui-button
-                                        color="blue"
-                                        size="large"
-                                        @click="emitOperatorConnectResponse(selectedThread)"
-                                        content="Connect"/>
-                                    <sui-label
-                                        v-if="selectedThread.connected"
-                                        color="blue"
-                                        size="large">Operator connection 0 minutes ago</sui-label>
+                                    style="text-align:center;padding:9px">
                                 </sui-list-content>
                                 <sui-grid>
                                     <sui-grid-row
-                                        :class="{
-                                            'lightbluebackground':message.beforeConnect,
-                                            'margintop': isMessageAfterConnect(message)}" 
                                         :columns="3">
                                         <sui-grid-column :width="1"></sui-grid-column>
-                                        <sui-grid-column :width="1">
-                                            <sui-icon size="big" name="circle" />
+                                        <sui-grid-column :width="2" style="padding:0px">
+                                            <img :src="getAvatarURL(message.sender)" />
                                         </sui-grid-column>
-                                        <sui-grid-column :class="{
+                                        <sui-grid-column 
+                                            :class="{
                                                 'five wide':(message.text.length<30),
                                                 'six wide':(message.text.length>=30),
                                                 'seven wide':(message.text.length>=40),
@@ -117,14 +109,91 @@
                                             <div style="padding:7px;margin:5px" class="ui red segment">
                                                 <a
                                                     class="message-bubble-link"
-                                                    v-text="message.sender" 
-                                                    style="margin-bottom:3px;display:inline"></a>
+                                                    v-text="message.sender.name" />
                                                 <span 
                                                     style="font-size:0.8em; color:#777" 
                                                     v-text="message.time"></span>
                                                 <p 
-                                                    v-text="message.text" 
-                                                    style="margin-bottom:3px"></p>
+                                                    style="margin-bottom:3px"
+                                                    v-text="message.text" ></p>
+                                                <div v-if="message.actions!=null">
+                                                    <sui-button
+                                                        v-for="action in message.actions"
+                                                        :style="{color:action.color}">
+                                                        {{action.title}}
+                                                    </sui-button>
+                                                </div>
+                                            </div>
+                                            <!-- /Message Bubble -->
+                                        </sui-grid-column>
+                                    </sui-grid-row>
+                                </sui-grid> 
+                            </sui-list-item>
+                        </sui-list>
+                        <!-- Connect Button -->
+                        <div v-if="selectedThread" 
+                            style="text-align:center;
+                                background-color:rgb(165, 199, 223);
+                                padding-bottom:10px">
+                            <sui-button
+                                v-if="!selectedThread.connected"
+                                color="blue"
+                                size="large"
+                                @click="emitOperatorConnectResponse(selectedThread)">Connect</sui-button>
+                            <sui-button
+                                v-if="!selectedThread.timeConnected"
+                                loading
+                                color="blue"
+                                size="large"
+                                content="Loading" />
+                            <sui-label
+                                v-if="selectedThread.timeConnected"
+                                color="blue"
+                                size="large">Connection Response at {{selectedThread.timeConnected}}</sui-label>
+                        </div>
+                        <!-- /Connect Button -->
+                        
+                        <sui-list relaxed>
+                            <sui-list-item v-for="message in selectedThread.messages">
+                                <sui-list-content
+                                    style="text-align:center;padding:9px">
+                                </sui-list-content>
+                                <sui-grid>
+                                    <sui-grid-row
+                                        :columns="3">
+                                        <sui-grid-column :width="1"></sui-grid-column>
+                                        <sui-grid-column :width="2" style="padding:0px">
+                                            <img :src="getAvatarURL(message.sender)" />
+                                        </sui-grid-column>
+                                        <sui-grid-column 
+                                            :class="{
+                                                'five wide':(message.text.length<30),
+                                                'six wide':(message.text.length>=30),
+                                                'seven wide':(message.text.length>=40),
+                                                'eight wide':(message.text.length>=50),
+                                                'nine wide':(message.text.length>=60),
+                                                'ten wide':(message.text.length>=70),
+                                                'eleven wide':(message.text.length>=80),
+                                                'twelve wide':(message.text.length>=90)                                                
+                                            }">
+                                            <!-- Message Bubble -->
+                                            <div style="padding:7px;margin:5px" class="ui red segment">
+                                                <a
+                                                    class="message-bubble-link"
+                                                    v-text="message.sender.name" />
+                                                <span 
+                                                    style="font-size:0.8em; color:#777" 
+                                                    v-text="message.time"></span>
+                                                <p 
+                                                    style="margin-bottom:3px"
+                                                    v-text="message.text" ></p>
+                                                <div v-if="message.actions!=null">
+                                                    <sui-button
+                                                        v-for="action in message.actions"
+                                                        :style="{color:action.color}">
+                                                        {{action.title}}
+                                                    </sui-button>
+                                                </div>
                                             </div>
                                             <!-- /Message Bubble -->
                                         </sui-grid-column>
@@ -140,10 +209,10 @@
                             type="text" 
                             placeholder="Type your message..."
                             v-model="message">
-                        <i 
+                        <!-- <i 
                             @click="startVideoCall()" 
                             style="margin-right:20px"
-                            class="video camera link icon"></i>
+                            class="video camera link icon"></i> -->
                         <i 
                             @click="sendMessage()" 
                             class="paper plane outline link icon"></i>
@@ -166,12 +235,10 @@ let shared = require('../globalState');
 module.exports = {
     data: () => ({ 
         global: shared.state,
-        selectedThread: {
-            messages: [],
-        },
+        selectedThread: null,
         message: '',
-        threads: []
-        //threads: require('./mock.js').mockThreadData 
+        // threads: [],
+        threads: require('./mock.js').mockThreadData
     }),
     sockets: {
         connect: function () {
@@ -182,30 +249,22 @@ module.exports = {
             console.log('message recieved !');
             console.log(msg);
         },
-        operatorConnectionRequest: function (threadStatus) {
-            let thread = {
-                username: threadStatus.user.name,
-                timeConnected: '0 minutes',
-                seen: false,
-                connected: false,
-                userIsOnline: true,
-                messages: threadStatus.messageHistory
-            };
+        operatorConnectionRequest: function (thread) {
             this.threads.push(thread);
         },
     },
     methods: {
         select: function(thread) {
-            let mw = document.getElementById("messageWindow");
-            this.selectedThread.lastScroll = mw.scrollTop; 
-            this.selectedThread.lastMessage = this.message;
-
             this.selectedThread = thread;
-            this.message = thread.lastMessage || '';
-            thread.seen = true;
             setTimeout( () => {
+                let mw = document.getElementById("messageWindow");
+                this.selectedThread.lastScroll = mw.scrollTop; 
+                this.selectedThread.lastMessage = this.message;
                 mw.scrollTop = thread.lastScroll || (mw.scrollHeight - mw.clientHeight);
             }, 50);
+            
+            this.message = thread.lastMessage || '';
+            thread.seen = true;
         },
         archive: function(thread) {
             this.threads.splice(this.threads.indexOf(thread), 1);
@@ -217,7 +276,11 @@ module.exports = {
             this.selectedThread.messages.push({
                 text: this.message,
                 time: moment().format('HH:MM'),
-                sender: 'live chatbot'
+                sender: {
+                    name: 'live chatbot',
+                    id: '1',
+                    gravatarHash: 'a'
+                }
             });
             this.message = '';
             setTimeout( () => {
@@ -233,21 +296,28 @@ module.exports = {
             return (!message.beforeConnect
                 &&this.selectedThread.messages[this.selectedThread.messages.indexOf(message)-1].beforeConnect);
         },
+        isMessageBeforeConnect: function(message) {
+            return this.selectedThread.messages.indexOf(message) == 0 ||(message.beforeConnect
+                &&!this.selectedThread.messages[this.selectedThread.messages.indexOf(message)+1].beforeConnect);
+        },
         startVideoCall: function() {
 
         },
         emitOperatorConnectResponse: function(){
             this.$socket.emit('operatorConnectResponse');
-        }
+        },
+        getAvatarURL: function(sender){
+            return util.getAvatarURL(sender).then(res => res);
+        },
     },
     mounted: async function() {
-        const mw = document.getElementById("messageWindow");
-        setInterval(function() {
-            const isScrolledToBottom = mw.scrollHeight - mw.clientHeight <= mw.scrollTop + 1;
-            if (isScrolledToBottom) {
-                mw.scrollTop = mw.scrollHeight - mw.clientHeight;
-            }
-        }, 500)
+        // const mw = document.getElementById("messageWindow");
+        // setInterval(function() {
+        //     const isScrolledToBottom = mw.scrollHeight - mw.clientHeight <= mw.scrollTop + 1;
+        //     if (isScrolledToBottom) {
+        //         mw.scrollTop = mw.scrollHeight - mw.clientHeight;
+        //     }
+        // }, 500)
     }
 }       
 </script>
@@ -282,6 +352,7 @@ module.exports = {
 .message-bubble-link{
     color:#2E85C5;
     font-weight:1.2em;
+    margin-bottom:3px;
 }
 .message-bubble-link:hover{
     color:rgb(35, 107, 158);

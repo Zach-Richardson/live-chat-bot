@@ -15,6 +15,9 @@ i{
 a:hover{
     color:white;
 }
+div{
+    text-rendering: optimizeLegibility
+}
 </style>
 
 <template>
@@ -44,7 +47,7 @@ a:hover{
                         @click="questions()"><br />
                     <h3
                         class="white"
-                        style="margin-top:5px"
+                        style="margin-top:5px;"
                         @click="questions()">Live Chat</h3>
                 </sui-grid-column>
             </sui-grid-row>

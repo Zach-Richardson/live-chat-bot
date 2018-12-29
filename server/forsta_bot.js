@@ -72,15 +72,6 @@ class ForstaBot {
 
     async initializeNewThread(msg){
         const dist = await this.resolveTags(msg.distribution.expression);
-        // const businessInfo = await this.getBusinessInfo();
-        // if(this.outOfOffice(businessInfo)){
-        //     if(businessInfo.action === 'Forward to Group') {
-        //         //connect the user to the configured group
-        //     }else{
-        //         await this.sendMessage(dist, msg.threadId, businessInfo.outOfOfficeMessage);
-        //     }
-        //     return;
-        // }
         const questions = await this.getQuestions();        
         //assuming that only the live-chat-bot and ephemeral user are in the thread
         const ephUser = (await this.getUsers(dist.userids)).filter(user => user.id != this.ourId)[0];
@@ -89,6 +80,7 @@ class ForstaBot {
             threadId: msg.threadId,
             dist,
             timeStarted: (new Date()).toUTCString(),
+            timeConnected: null,
             timeEnded: null,
             questions,
             currentQuestion: questions[0],
@@ -119,15 +111,30 @@ class ForstaBot {
         let {action, actionOption} = threadStatus.currentQuestion.type == 'Multiple Choice'
         ?threadStatus.currentQuestion.responses[parseInt(msg.data.action)]
         :threadStatus.currentQuestion.responses[0];
+        const {dist, threadId, questions} = threadStatus;
         if(action == 'Forward to Question'){
             const questionNumber = parseInt(actionOption.split(' ')[1])-1;
-            threadStatus.currentQuestion = threadStatus.questions[questionNumber];
-            this.sendQuestion(threadStatus.dist, threadStatus.threadId, threadStatus.currentQuestion);
+            threadStatus.currentQuestion = questions[questionNumber];
+            this.sendQuestion(dist, threadId, questions[questionNumber]);
         }else if(action == 'Forward to Group'){
             let group = (await this.getGroups()).find(group => group.name == actionOption);
+            const ts = this.threadStatus[msg.threadId];
             group.users.forEach(user => {
                 if(this.sockets[user.id]){
-                    this.sockets[user.id].emit('operatorConnectionRequest', threadStatus);
+                    this.sockets[user.id].emit('operatorConnectionRequest', 
+                    {
+                        threadId: ts.threadId,
+                        dist: ts.dist,
+                        timeStarted: ts.timeStarted,
+                        timeConnected: null,
+                        messageHistory: ts.messageHistory,
+                        messages: [],
+                        bot: ts.bot,
+                        user: ts.user,
+                        userIsOnline: true,
+                        seen: false,
+                        connected: false
+                    });
                 }
             });
             threadStatus.onHold = true;
@@ -155,15 +162,20 @@ class ForstaBot {
 
     async saveToThreadMessageHistory(message){
         let threadStatus = this.threadStatus[message.threadId];
-        let sender = this.fqName((await this.getUsers([message.sender.userId]))[0]);
+        let sender = await this.getUsers([message.sender.userId]);        
         let text = message.data.body
-        ? message.data.body[0].value
-        : threadStatus.currentQuestion.responses[parseInt(message.data.action)].text;
+        ? message.data.body[0].value //if its an outgoing message, save the text
+        : threadStatus.currentQuestion.responses[parseInt(message.data.action)].text; //if its an incoming message save the response text based on the selected action
         let formattedMessage = {
             text,
             time: moment().format('HH:MM:SS'),
-            sender,
-            beforeConnect: true
+            sender: {
+                name: this.fqName(sender),
+                id: sender.id,
+                gravatarHash: sender.gravatar_hash
+            },
+            beforeConnect: true,
+            actions: message.data.actions || null
         };
         threadStatus.messageHistory.push(formattedMessage);
     }
