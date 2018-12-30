@@ -52,8 +52,6 @@ async function _fetch(url, { method='get', headers={}, body={} }={}, noBodyAwait
     return resp;
 }
 
-// 
-
 // function versionedURL(url) {
 //     url = url.trim();
 //     url += ((url.match(/\?/)) ? '&' : '?');
@@ -133,7 +131,7 @@ function getAvatarPixels(size="medium") {
 //     });
 // };
 
-async function textAvatarURL(text, size) {
+function textAvatarURL(text, size) {
     //let bgColor = pickColor(text);
     let bgColor ="#b5cc18";
     // const fontBlob = await fetchStaticBlob('fonts/Poppins-Medium.ttf');

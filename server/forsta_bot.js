@@ -45,10 +45,35 @@ class ForstaBot {
         let addSocket = (function (socket, userId){
             this.sockets[userId] = socket;
         }).bind(this);
+        let connectOperator = (async function (operatorId, threadId){
+            let operatorUser = (await this.getUsers([operatorId]))[0];
+            this.threadStatus[threadId].operator = {
+                name: this.fqName(operatorUser),
+                id: operatorUser.id,
+                gravatarHash: operatorUser.gravatar_hash,
+            };
+            this.threadStatus[threadId].onHold = false;
+            this.threadStatus[threadId].timeConnected = (new Date()).toUTCString();
+            this.sendMessage(this.threadStatus[threadId].dist, threadId, 
+                `You are now connected with ${this.fqName(operatorUser)}!`);
+            this.sockets[operatorId].emit('threadUpdate', this.threadStatus[threadId]);
+        }).bind(this);
+        let sendMessage = (async function (threadId, text){
+            const outgoingMessage = await this.sendMessage(this.threadStatus[threadId].dist, threadId, text);
+            const messageBody = JSON.parse(outgoingMessage.message.dataMessage.body)[0];
+            this.saveToMessageHistory(messageBody);
+        }).bind(this);
         io.on('connect', function (socket) {
             let s = socket;
             socket.on('createConnection', function(userId) {
                 addSocket(s, userId);
+            });
+            socket.on('operatorConnectResponse', function(op) {
+                connectOperator(op.operatorId, op.threadId);
+                //update all the other operators in the group that the thread has been taken
+            });
+            socket.on('message', function(op) {
+                sendMessage(op.threadId, op.text);
             });
         });
         this.socketio = io;
@@ -85,6 +110,7 @@ class ForstaBot {
             questions,
             currentQuestion: questions[0],
             messageHistory: [],
+            messages: [],
             operator: null,
             onHold: false,
             bot: {
@@ -107,7 +133,24 @@ class ForstaBot {
             let onHoldMessage = 'Waiting for an operator to connect...';
             this.sendMessage(threadStatus.dist, threadStatus.threadId, onHoldMessage);
             return;
-        }        
+        }     
+        if(threadStatus.operator){
+            const sender = (await this.getUsers([msg.sender.userId]))[0];
+            this.sockets[threadStatus.operator.id].emit('message', 
+            {
+                threadId: msg.threadId,
+                message: {
+                    text: msg.data.body[0].value,
+                    time: (new Date()).toUTCString(),
+                    sender: {
+                        name: this.fqName(sender),
+                        id: msg.sender.userId,
+                        gravatarHash: sender.gravatar_hash
+                    }
+                }
+            });
+            return;
+        }   
         let {action, actionOption} = threadStatus.currentQuestion.type == 'Multiple Choice'
         ?threadStatus.currentQuestion.responses[parseInt(msg.data.action)]
         :threadStatus.currentQuestion.responses[0];
@@ -118,23 +161,9 @@ class ForstaBot {
             this.sendQuestion(dist, threadId, questions[questionNumber]);
         }else if(action == 'Forward to Group'){
             let group = (await this.getGroups()).find(group => group.name == actionOption);
-            const ts = this.threadStatus[msg.threadId];
             group.users.forEach(user => {
                 if(this.sockets[user.id]){
-                    this.sockets[user.id].emit('operatorConnectionRequest', 
-                    {
-                        threadId: ts.threadId,
-                        dist: ts.dist,
-                        timeStarted: ts.timeStarted,
-                        timeConnected: null,
-                        messageHistory: ts.messageHistory,
-                        messages: [],
-                        bot: ts.bot,
-                        user: ts.user,
-                        userIsOnline: true,
-                        seen: false,
-                        connected: false
-                    });
+                    this.sockets[user.id].emit('operatorConnectionRequest', this.threadStatus[msg.threadId]);
                 }
             });
             threadStatus.onHold = true;
