@@ -67,23 +67,21 @@
                         v-if="!selectedThread"
                         style="text-align:center;height:612px;">
                         <sui-label
+                            v-if="threads.length!=0"
                             color="grey"
                             size="large"
                             style="margin-top:50%">Thread not selected!</sui-label>
+                        <sui-label
+                            v-else
+                            color="grey"
+                            size="large"
+                            style="margin-top:50%">No threads are available!</sui-label>
                     </sui-container>
                     <sui-container
                         id="messageWindow" 
                         v-else
                         style="overflow-x:hidden; overflow-y: scroll; height:612px;">
-                        <div v-if="selectedThread" 
-                            style="text-align:center;
-                            background-color:rgb(165, 199, 223);
-                            padding-top:10px">
-                            <sui-label
-                                color="blue"
-                                size="large">Connection Request at {{selectedThread.timeStarted}}</sui-label>
-                        </div>
-                        <sui-list relaxed style="background-color:rgb(165, 199, 223);margin-top:0px">
+                        <sui-list relaxed style="background-color:#e8e8e8;margin-top:0px">
                             <!-- MESSAGE HISTORY -->
                             <sui-list-item v-for="message in selectedThread.messageHistory">
                                 <sui-list-content
@@ -99,25 +97,24 @@
                                         </sui-grid-column>
                                         <sui-grid-column 
                                             :class="{
-                                                'five wide':(message.text.length<30),
-                                                'six wide':(message.text.length>=30),
-                                                'seven wide':(message.text.length>=40),
-                                                'eight wide':(message.text.length>=50),
-                                                'nine wide':(message.text.length>=60),
-                                                'ten wide':(message.text.length>=70),
-                                                'eleven wide':(message.text.length>=80),
-                                                'twelve wide':(message.text.length>=90)                                                
+                                                'six wide':(message.text.length<=30),
+                                                'seven wide':(message.text.length>=30),
+                                                'eight wide':(message.text.length>=40),
+                                                'nine wide':(message.text.length>=50),
+                                                'ten wide':(message.text.length>=60),
+                                                'eleven wide':(message.text.length>=70),
+                                                'twelve wide':(message.text.length>=80)                                                
                                             }">
                                             <!-- Message Bubble -->
-                                            <div style="padding:7px;margin:5px;word-wrap:break-word" class="ui red segment">
+                                            <div style="padding:11px;word-wrap:break-word" class="ui grey segment">
                                                 <a
                                                     class="message-bubble-link"
                                                     v-text="message.sender.name" />
                                                 <span 
-                                                    style="font-size:0.8em; color:#777" 
+                                                    style="font-size:0.8em; color:#777;margin-left:4px" 
                                                     v-text="message.time"></span>
                                                 <div 
-                                                    style="margin-bottom:3px"
+                                                    style="margin-bottom:3px;margin-top:3px"
                                                     v-text="message.text" ></div>
                                                 <div v-if="message.actions!=null">
                                                     <sui-button
@@ -136,18 +133,22 @@
                         <!-- /MESSAGE HISTORY -->
                         <!-- Connect Button -->
                         <div v-if="selectedThread" 
-                            style="text-align:center;
-                                background-color:rgb(165, 199, 223);
-                                padding-bottom:10px">
+                            style="text-align:center;">
+                            <sui-label
+                                color="grey"
+                                style="width:100%;border-radius:0px"
+                                size="large">Connection Request at {{selectedThread.timeStarted}}</sui-label>
                             <sui-button
                                 v-if="!selectedThread.operator"
                                 color="blue"
                                 size="large"
+                                style="width:100%;border-radius:0px"
                                 @click="emitOperatorConnectResponse()">Connect</sui-button>
                             <sui-label
-                                v-if="selectedThread.operator"
+                                v-else
                                 color="blue"
-                                size="large">Connection Response at {{selectedThread.timeConnected}}</sui-label>
+                                size="large"
+                                style="width:100%;border-radius:0px;margin:0px">Connection Response at {{selectedThread.timeConnected}}</sui-label>
                         </div>
                         <!-- /Connect Button -->
                         <!-- MESSAGE WINDOW -->
@@ -166,26 +167,25 @@
                                         </sui-grid-column>
                                         <sui-grid-column 
                                             :class="{
-                                                'five wide':(message.text.length<30),
-                                                'six wide':(message.text.length>=30),
-                                                'seven wide':(message.text.length>=40),
-                                                'eight wide':(message.text.length>=50),
-                                                'nine wide':(message.text.length>=60),
-                                                'ten wide':(message.text.length>=70),
-                                                'eleven wide':(message.text.length>=80),
-                                                'twelve wide':(message.text.length>=90)                                                
+                                                'six wide':(message.text.length<=30),
+                                                'seven wide':(message.text.length>=30),
+                                                'eight wide':(message.text.length>=40),
+                                                'nine wide':(message.text.length>=50),
+                                                'ten wide':(message.text.length>=60),
+                                                'eleven wide':(message.text.length>=70),
+                                                'twelve wide':(message.text.length>=80)                                                
                                             }">
                                             <!-- Message Bubble -->
-                                            <div style="padding:7px;margin:5px;word-wrap:break-word" class="ui red segment">
+                                            <div style="padding:11px;word-wrap:break-word" class="ui red segment">
                                                 <a
                                                     class="message-bubble-link"
                                                     v-text="message.sender.name" />
                                                 <span 
-                                                    style="font-size:0.8em; color:#777" 
+                                                    style="font-size:0.8em;color:#777;margin-left:4px" 
                                                     v-text="message.time"></span>
                                                 <div  
-                                                    style="margin-bottom:3px"
-                                                    v-text="message.text" ></div >
+                                                    style="margin-bottom:3px;margin-top:3px"
+                                                    v-text="message.text"></div >
                                                 <div v-if="message.actions!=null">
                                                     <sui-button
                                                         v-for="action in message.actions"
@@ -247,9 +247,6 @@ module.exports = {
             let mw = document.getElementById("messageWindow");
             const wasScrolledToBottom = mw.scrollHeight - mw.clientHeight <= mw.scrollTop + 1;
             this.threads.find(t => t.threadId == op.threadId).messages.push(op.message);
-            if(this.selectedThread.threadId == op.threadId){
-                this.selectedThread.messages.push(op.message);
-            }
             setTimeout( () => { //scroll to the bottom of the chat window
                 let mw2 = document.getElementById("messageWindow");
                 if (wasScrolledToBottom) mw2.scrollTop = mw2.scrollHeight - mw2.clientHeight;
@@ -259,10 +256,13 @@ module.exports = {
             this.threads.push(thread);
         },
         threadUpdate: function (thread) {
-            let t = this.threads.find(t => t.threadId == thread.threadId);;
-            t = thread;
-            if(this.selectedThread.threadId == t.threadId){
+            if(this.selectedThread.threadId == thread.threadId){
                 this.selectedThread = thread;
+            }
+            for(let i=0; i<this.threads.length; i++){
+                if(this.threads[i].threadId == thread.threadId){
+                    this.threads[i] = thread;
+                }
             }
         }
     },
@@ -284,14 +284,13 @@ module.exports = {
             const wasScrolledToBottom = mw.scrollHeight - mw.clientHeight <= mw.scrollTop + 1;
             const msg = {
                 text: this.message,
-                time: moment().format('HH:MM'),
+                time: (new Date()).toUTCString(),
                 sender: {
                     name: 'live chatbot',
                     id: '1',
                     gravatarHash: 'a'
                 }
             };
-            this.selectedThread.messages.push(msg);
             this.threads.find(t => t.threadId == this.selectedThread.threadId).messages.push(msg);
             this.$socket.emit('message', 
             {
@@ -333,15 +332,6 @@ module.exports = {
             return `https://www.gravatar.com/avatar/${sender.gravatarHash}?s=${size}&d=identicon`;
             // return await util.getAvatarURL(sender);
         },
-    },
-    mounted: async function() {
-        // const mw = document.getElementById("messageWindow");
-        // setInterval(function() {
-        //     const isScrolledToBottom = mw.scrollHeight - mw.clientHeight <= mw.scrollTop + 1;
-        //     if (isScrolledToBottom) {
-        //         mw.scrollTop = mw.scrollHeight - mw.clientHeight;
-        //     }
-        // }, 500)
     }
 }       
 </script>
@@ -369,8 +359,8 @@ module.exports = {
 .darkgreybackground:hover{
     background-color:#7a7a7a;
 }
-.lightbluebackground{
-    background-color:rgb(165, 199, 223);
+.lightgreybackground{
+    background-color:#cce2ff;
     cursor: pointer;
 }
 .message-bubble-link{

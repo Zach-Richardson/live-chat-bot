@@ -47,6 +47,7 @@ class ForstaBot {
         }).bind(this);
         let connectOperator = (async function (operatorId, threadId){
             let operatorUser = (await this.getUsers([operatorId]))[0];
+            let ephemeralUser = (await this.getUsers([this.threadStatus[threadId].user.id]))[0];
             this.threadStatus[threadId].operator = {
                 name: this.fqName(operatorUser),
                 id: operatorUser.id,
@@ -57,6 +58,20 @@ class ForstaBot {
             this.sendMessage(this.threadStatus[threadId].dist, threadId, 
                 `You are now connected with ${this.fqName(operatorUser)}!`);
             this.sockets[operatorId].emit('threadUpdate', this.threadStatus[threadId]);
+            this.sockets[operatorId].emit('message', 
+            {
+                threadId: threadId,
+                message: {
+                    text: `You are now connected with ${this.fqName(ephemeralUser)}!`,
+                    time: (new Date()).toUTCString(),
+                    sender: {
+                        name: this.fqName(ephemeralUser),
+                        id: ephemeralUser.id,
+                        gravatarHash: ephemeralUser.gravatar_hash
+                    }
+                }
+            });
+            
         }).bind(this);
         let sendMessage = (async function (threadId, text){
             const outgoingMessage = await this.sendMessage(this.threadStatus[threadId].dist, threadId, text);
@@ -86,13 +101,13 @@ class ForstaBot {
             if(!msg) console.log('Dropping unsupported message:', event);
             return;
         }
-
-        this.saveToMessageHistory(msg, event.data.message.attachments);
         if(!this.threadStatus[msg.threadId]) {
             await this.initializeNewThread(msg);
-        }else{            
-            await this.stepThreadState(this.threadStatus[msg.threadId], msg);
+            return;
         }
+        this.saveToMessageHistory(msg, event.data.message.attachments);
+        await this.saveToThreadMessageHistory(msg);       
+        await this.stepThreadState(this.threadStatus[msg.threadId], msg);
     }
 
     async initializeNewThread(msg){
@@ -124,16 +139,20 @@ class ForstaBot {
                 gravatarHash: ephUser.gravatar_hash
             }
         };
-        await this.saveToThreadMessageHistory(msg);
         this.sendQuestion(dist, msg.threadId, questions[0]);
     }
 
     async stepThreadState(threadStatus, msg){
         if(threadStatus.onHold){
-            let onHoldMessage = 'Waiting for an operator to connect...';
-            this.sendMessage(threadStatus.dist, threadStatus.threadId, onHoldMessage);
+            this.sendMessage(threadStatus.dist, threadStatus.threadId, 
+                'Waiting for an operator to connect...');
             return;
-        }     
+        } 
+        if(threadStatus.currentQuestion.type == 'Multiple Choice' && !msg.data){
+            this.sendMessage(threadStatus.dist, threadStatus.threadId, 
+                'Please select a response');
+                return;
+        }
         if(threadStatus.operator){
             const sender = (await this.getUsers([msg.sender.userId]))[0];
             this.sockets[threadStatus.operator.id].emit('message', 
@@ -156,10 +175,15 @@ class ForstaBot {
         :threadStatus.currentQuestion.responses[0];
         const {dist, threadId, questions} = threadStatus;
         if(action == 'Forward to Question'){
-            const questionNumber = parseInt(actionOption.split(' ')[1])-1;
-            threadStatus.currentQuestion = questions[questionNumber];
-            this.sendQuestion(dist, threadId, questions[questionNumber]);
+            const questionIndex = parseInt(actionOption.split(' ')[1])-1;
+            threadStatus.currentQuestion = questions[questionIndex];
+            this.sendQuestion(dist, threadId, questions[questionIndex]);
         }else if(action == 'Forward to Group'){
+            const operatorConnectMessage = 'A live chat operator will be with you shortly';
+            let outgoingMessage = await this.sendMessage(threadStatus.dist, threadStatus.threadId, operatorConnectMessage);
+            let messageBody = JSON.parse(outgoingMessage.message.dataMessage.body)[0];
+            await this.saveToThreadMessageHistory(messageBody);
+            this.saveToMessageHistory(messageBody);
             let group = (await this.getGroups()).find(group => group.name == actionOption);
             group.users.forEach(user => {
                 if(this.sockets[user.id]){
@@ -167,8 +191,6 @@ class ForstaBot {
                 }
             });
             threadStatus.onHold = true;
-            const operatorConnectMessage = 'A live chat operator will be with you shortly';
-            this.sendMessage(threadStatus.dist, threadStatus.threadId, operatorConnectMessage);
         }
     }
 
@@ -191,7 +213,7 @@ class ForstaBot {
 
     async saveToThreadMessageHistory(message){
         let threadStatus = this.threadStatus[message.threadId];
-        let sender = await this.getUsers([message.sender.userId]);        
+        let sender = (await this.getUsers([message.sender.userId]))[0];        
         let text = message.data.body
         ? message.data.body[0].value //if its an outgoing message, save the text
         : threadStatus.currentQuestion.responses[parseInt(message.data.action)].text; //if its an incoming message save the response text based on the selected action
