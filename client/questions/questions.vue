@@ -24,9 +24,9 @@ div [class*="pull right"] {
     <div class="ui container left aligned">
         <sui-grid>
             <sui-grid-row>
-                <sui-grid-column :width="4">
+                <!-- <sui-grid-column :width="4">
 
-                </sui-grid-column>
+                </sui-grid-column> -->
                 <sui-grid-column :width="12">
                     <sui-grid 
                         style="padding-top:5%;"
@@ -62,7 +62,7 @@ div [class*="pull right"] {
                                     pointing="right"
                                     color="blue"
                                     size="large"
-                                    style="vertical-align:middle; margin-left: 10px;">Prompt</sui-label>
+                                    style="vertical-align:middle;margin-left: 10px;">Prompt</sui-label>
                                 <sui-input
                                     :style="$mq | mq({
                                         smallScreen: 'width:50%',
@@ -76,13 +76,15 @@ div [class*="pull right"] {
                                     pointing="right"
                                     color="blue"
                                     size="large"
-                                    style="vertical-align:middle">Type</sui-label>
+                                    style="vertical-align:middle;
+                                        margin-left:20px;">Type</sui-label>
                                 <sui-dropdown
                                     selection
                                     placeholder="Question Type"
                                     :options="questionTypes"
                                     @input="checkForChanges()"
                                     class="large"
+                                    style="margin-top:10px"
                                     v-model="question.type" />
                             </sui-grid-column>
                         </sui-grid-row>
@@ -94,7 +96,7 @@ div [class*="pull right"] {
                                         <sui-grid-column>
                                             <sui-label
                                                 pointing="right"
-                                                color="blue"
+                                                color="grey"
                                                 style="vertical-align:middle">Choice</sui-label>
                                             <sui-input
                                                 class="flexbox"
@@ -110,7 +112,7 @@ div [class*="pull right"] {
                                         <sui-grid-column>
                                             <sui-label
                                                 pointing="right"
-                                                color="blue"
+                                                color="grey"
                                                 style="vertical-align:middle; margin-left: 10px;">Action</sui-label>
                                             <sui-dropdown      
                                                 selection
@@ -118,6 +120,7 @@ div [class*="pull right"] {
                                                 v-model="response.action"
                                                 @input="updateAction(response)"/>
                                             <sui-icon
+                                                color="grey"
                                                 name="arrow right"
                                                 size="large" />
                                             <span v-if="response.action==='Forward to Question'">
@@ -171,7 +174,7 @@ div [class*="pull right"] {
                                         <sui-list-content style="color:#777">                          
                                             <sui-label
                                                 pointing="right"
-                                                color="blue"
+                                                color="grey"
                                                 style="vertical-align:middle">Action</sui-label>
                                             <sui-dropdown      
                                                 selection

@@ -131,7 +131,9 @@ function getAvatarPixels(size="medium") {
 //     });
 // };
 
+let avatarUrls = [];
 function textAvatarURL(text, size) {
+    if(avatarUrls[text]) return avatarUrls[text];
     //let bgColor = pickColor(text);
     let bgColor ="#b5cc18";
     // const fontBlob = await fetchStaticBlob('fonts/Poppins-Medium.ttf');

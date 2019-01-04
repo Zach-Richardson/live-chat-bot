@@ -55,20 +55,25 @@ class ForstaBot {
             };
             this.threadStatus[threadId].onHold = false;
             this.threadStatus[threadId].timeConnected = (new Date()).toUTCString();
+            this.sockets[operatorId].emit('threadUpdate', {
+                    threadId,
+                    timeConnected:this.threadStatus[threadId].timeConnected,
+                    operator: this.threadStatus[threadId].operator
+                });
             this.sendMessage(this.threadStatus[threadId].dist, threadId, 
                 `You are now connected with ${this.fqName(operatorUser)}!`);
-            this.sockets[operatorId].emit('threadUpdate', this.threadStatus[threadId]);
             this.sockets[operatorId].emit('message', 
             {
                 threadId: threadId,
                 message: {
                     text: `You are now connected with ${this.fqName(ephemeralUser)}!`,
                     time: (new Date()).toUTCString(),
+                    timeSinceSent: '',
                     sender: {
                         name: this.fqName(ephemeralUser),
                         id: ephemeralUser.id,
-                        gravatarHash: ephemeralUser.gravatar_hash
-                    }
+                        gravatarHash: ephemeralUser.gravatar_hash,
+                    },
                 }
             });
             
@@ -120,7 +125,9 @@ class ForstaBot {
             threadId: msg.threadId,
             dist,
             timeStarted: (new Date()).toUTCString(),
+            timeSinceStarted: '',
             timeConnected: null,
+            timeSinceConnected: '',
             timeEnded: null,
             questions,
             currentQuestion: questions[0],
@@ -131,12 +138,14 @@ class ForstaBot {
             bot: {
                 name: this.fqName(botUser),
                 id: botUser.id,
-                gravatarHash: botUser.gravatar_hash
+                gravatarHash: botUser.gravatar_hash,
+                avatarURL: ''
             },
             user: {
                 name: this.fqName(ephUser),
                 id: ephUser.id,
-                gravatarHash: ephUser.gravatar_hash
+                gravatarHash: ephUser.gravatar_hash,
+                avatarURL: ''
             }
         };
         this.sendQuestion(dist, msg.threadId, questions[0]);
@@ -165,7 +174,8 @@ class ForstaBot {
                         name: this.fqName(sender),
                         id: msg.sender.userId,
                         gravatarHash: sender.gravatar_hash
-                    }
+                    },
+                    timeSinceSent: ''
                 }
             });
             return;
@@ -219,7 +229,8 @@ class ForstaBot {
         : threadStatus.currentQuestion.responses[parseInt(message.data.action)].text; //if its an incoming message save the response text based on the selected action
         let formattedMessage = {
             text,
-            time: moment().format('HH:MM:SS'),
+            time: (new Date()).toUTCString(),
+            timeSinceSent: '',
             sender: {
                 name: this.fqName(sender),
                 id: sender.id,
@@ -275,7 +286,6 @@ class ForstaBot {
 
     outOfOffice(businessInfo){
         if(!businessInfo) return false;
-
         const hoursNow = moment().hours();
         const minsNow = moment().minutes();
         const openHours = Number(businessInfo.open.split(':')[0]);
@@ -298,7 +308,7 @@ class ForstaBot {
             distribution: dist,
             threadId: threadId,
             html: `${ text }`,
-            text: text
+            text: text  
         }).catch(err => console.log(err));
     }
 
