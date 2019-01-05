@@ -89,6 +89,8 @@ async function tryAuthCode() {
     }
     this.loading = false;
     if (result.ok) {
+        console.log('tryAuthCode() result: ');
+        console.log(result);
         const { token } = result.theJson;
         this.global.apiToken = token;
         const forwardTo = this.$route.query.forwardTo;

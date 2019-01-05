@@ -45,16 +45,17 @@ class ForstaBot {
         let addSocket = (function (socket, userId){
             this.sockets[userId] = socket;
         }).bind(this);
-        let connectOperator = (async function (operatorId, threadId){
+        let connectOperator = (async function (operatorId, threadId, timeConnected){
             let operatorUser = (await this.getUsers([operatorId]))[0];
             let ephemeralUser = (await this.getUsers([this.threadStatus[threadId].user.id]))[0];
             this.threadStatus[threadId].operator = {
                 name: this.fqName(operatorUser),
                 id: operatorUser.id,
                 gravatarHash: operatorUser.gravatar_hash,
+                avatarURL: ''
             };
             this.threadStatus[threadId].onHold = false;
-            this.threadStatus[threadId].timeConnected = (new Date()).toUTCString();
+            this.threadStatus[threadId].timeConnected = timeConnected;
             this.sockets[operatorId].emit('threadUpdate', {
                     threadId,
                     timeConnected:this.threadStatus[threadId].timeConnected,
@@ -73,6 +74,7 @@ class ForstaBot {
                         name: this.fqName(ephemeralUser),
                         id: ephemeralUser.id,
                         gravatarHash: ephemeralUser.gravatar_hash,
+                        avatarURL: ''
                     },
                 }
             });
@@ -89,7 +91,7 @@ class ForstaBot {
                 addSocket(s, userId);
             });
             socket.on('operatorConnectResponse', function(op) {
-                connectOperator(op.operatorId, op.threadId);
+                connectOperator(op.operatorId, op.threadId, op.timeConnected);
                 //update all the other operators in the group that the thread has been taken
             });
             socket.on('message', function(op) {
@@ -173,7 +175,8 @@ class ForstaBot {
                     sender: {
                         name: this.fqName(sender),
                         id: msg.sender.userId,
-                        gravatarHash: sender.gravatar_hash
+                        gravatarHash: sender.gravatar_hash,
+                        avatarURL: ''
                     },
                     timeSinceSent: ''
                 }

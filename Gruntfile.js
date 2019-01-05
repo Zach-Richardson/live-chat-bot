@@ -100,7 +100,7 @@ module.exports = function(grunt) {
           expand: true,
           src: [
             'html/**',
-            'images/**',
+            'images/**'
           ],
           dest: static_dist
         }]

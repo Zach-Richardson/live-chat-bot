@@ -23,14 +23,11 @@
                                 hoverblue: thread.operator&&selectedThread!=thread&&thread.user
                             }">     
                             <sui-grid :columns="3">
-                                <sui-grid-column :width="4" @click="select(thread)">
-                                    <sui-grid-row>
-                                        <img :src="getAvatarURL(thread.user, '75')"
-                                            style="border-radius:50%" />
-                                    </sui-grid-row>
-                                </sui-grid-column>
-                                <sui-grid-column :width="10" @click="select(thread)">
-                                    <sui-grid-row>
+                                <sui-grid-row>
+                                    <sui-grid-column :width="4" @click="select(thread)">
+                                        <object type="image/svg+xml" :data="thread.user.avatarURL" />
+                                    </sui-grid-column>
+                                    <sui-grid-column :width="10" @click="select(thread)">
                                         <h3 
                                             style="margin-bottom:2px;" 
                                             v-text="thread.user.name"
@@ -42,17 +39,15 @@
                                         <span 
                                             style="color:#afafaf;margin-top:4px" 
                                             v-text="newestMessage(thread)" />
-                                    </sui-grid-row>
-                                </sui-grid-column>
-                                <sui-grid-column :width="2">
-                                    <sui-grid-row>
+                                    </sui-grid-column>
+                                    <sui-grid-column :width="2">
                                         <sui-icon
                                             @click="archive(thread)"
                                             style="display:inline"
                                             class="hover-red pull-right"
                                             name="archive"/>
-                                    </sui-grid-row>
-                                </sui-grid-column>
+                                    </sui-grid-column>
+                                </sui-grid-row>
                             </sui-grid>                       
                         </sui-list-item>
                     </sui-list>
@@ -91,8 +86,8 @@
                                         :columns="3">
                                         <sui-grid-column :width="1"></sui-grid-column>
                                         <sui-grid-column :width="1" style="padding:0px">
-                                            <img :src="getAvatarURL(message.sender, '50')"
-                                                style="border-radius:50%" />
+                                            <object type="image/svg+xml" 
+                                                :data="message.sender.avatarURL" />
                                         </sui-grid-column>
                                         <sui-grid-column 
                                             :class="{
@@ -165,8 +160,8 @@
                                         :columns="3">
                                         <sui-grid-column :width="1"></sui-grid-column>
                                         <sui-grid-column :width="1" style="padding:0px">
-                                            <img :src="getAvatarURL(message.sender, '50')"
-                                                style="border-radius:50%" />
+                                            <object type="image/svg+xml" 
+                                                :data="message.sender.avatarURL" />
                                         </sui-grid-column>
                                         <sui-grid-column 
                                             :class="{
@@ -235,14 +230,15 @@
 'use strict'
 const moment = require('moment');
 let shared = require('../globalState');
-const TIME_SINCE_SENT_REFRESH_RATE = 1*1000;//ms
+const TIME_SINCE_SENT_REFRESH_RATE = 15*1000;//ms
 
 module.exports = {
     data: () => ({ 
         global: shared.state,
         selectedThread: null,
         message: '',
-        threads: []
+        threads: [],
+        avatarURLs: {}
     }),
     sockets: {
         connect: function () {
@@ -255,37 +251,30 @@ module.exports = {
             let thread = this.threads.find(t => t.threadId == op.threadId);
             thread.messages.push(op.message);
             let cur = thread.messages[thread.messages.length-1];
-            setInterval(
-                () => {cur.timeSinceSent = moment(cur.time).fromNow()},
-                TIME_SINCE_SENT_REFRESH_RATE
-            );
-            setTimeout( () => { //scroll to the bottom of the chat window
-                let mw2 = document.getElementById("messageWindow");
-                if (wasScrolledToBottom) mw2.scrollTop = mw2.scrollHeight - mw2.clientHeight;
-            }, 50);
+            this.configAvatarURL(cur.sender, '35');
+            this.configTimeSinceSent(cur, 'timeSinceSent', cur.time);
+            this.scrollToBottomIf(mw, wasScrolledToBottom);
         },
         operatorConnectionRequest: function (thread) {
-            setInterval(
-                () => {thread.timeSinceStarted = moment(thread.timeStarted).fromNow()},
-                TIME_SINCE_SENT_REFRESH_RATE
-            );
-            for(let i=0;i<thread.messageHistory.length;i++){
-                let cur = thread.messageHistory[i];
-                setInterval(
-                    () => {cur.timeSinceSent = moment(cur.time).fromNow()},
-                    TIME_SINCE_SENT_REFRESH_RATE
-                );
-            }
+            this.configTimeSinceSent(thread, 'timeSinceStarted', thread.timeStarted);
+            this.configAvatarURL(thread.user, '55');
+            thread.messageHistory.forEach(msg => {
+                this.configTimeSinceSent(msg, 'timeSinceSent', msg.time)
+                this.configAvatarURL(msg.sender, '35');
+            });
             this.threads.push(thread);
         },
         threadUpdate: function (op) {
-            let t = this.threads.find(t => t.threadId == op.threadId)
+            let thread = this.threads.find(t => t.threadId == op.threadId)
             for(let key in op){
-                if(t[key]) t[key] = op[key];
+                if(thread.hasOwnProperty(key)) thread[key] = op[key];
                 else{
                     console.log('key not found in threadUpdate, key:' + key);
                     console.log(op);
                 }
+            }
+            if(thread.operator){
+                this.configAvatarURL(thread.operator, '55');
             }
         }
     },
@@ -294,27 +283,30 @@ module.exports = {
             this.selectedThread = thread;
             setTimeout( () => {
                 let mw = document.getElementById("messageWindow");
-                this.selectedThread.lastScroll = mw.scrollTop; 
+                this.selectedThread.lastScroll = mw.scrollTop;
                 mw.scrollTop = thread.lastScroll || (mw.scrollHeight - mw.clientHeight);
             }, 50);
         },
         archive: function(thread) {
             this.threads.splice(this.threads.indexOf(thread), 1);
         },
-        sendMessage: function() {
+        sendMessage: async function() {
             if(this.message.length==0) return;
             let mw = document.getElementById("messageWindow");
             const wasScrolledToBottom = mw.scrollHeight - mw.clientHeight <= mw.scrollTop + 1;
             const msg = {
                 text: this.message,
                 time: (new Date()).toUTCString(),
-                sender: {
-                    name: 'live chatbot',
-                    id: '1',
+                timeSinceSent: '',
+                sender:{
+                    id: this.global.userId,
+                    name: 'needstobewiredin',
                     gravatarHash: 'a',
-                    avatarUrl: await util.getAvatarURL('lc', 'small')
+                    avatarURL: ''
                 }
             };
+            this.configAvatarURL(msg.sender, '35');
+            this.configTimeSinceSent(msg, 'timeSinceSent', msg.time);
             this.threads.find(t => t.threadId == this.selectedThread.threadId).messages.push(msg);
             this.$socket.emit('message', 
             {
@@ -322,11 +314,7 @@ module.exports = {
                 threadId: this.selectedThread.threadId,
             });
             this.message = ''; //clear the message
-            setTimeout( () => { //scroll to the bottom of the chat window
-                let mw2 = document.getElementById("messageWindow");
-                if (wasScrolledToBottom) mw2.scrollTop = mw2.scrollHeight - mw2.clientHeight;
-            }, 50);
-            
+            this.scrollToBottomIf(mw, wasScrolledToBottom);
         },
         newestMessage: function(thread) {
             if(thread.messages.length==0){
@@ -347,17 +335,35 @@ module.exports = {
 
         },
         emitOperatorConnectResponse: function(){
+            const timeNow = (new Date()).toUTCString();
+            this.selectedThread.timeConnected = timeNow;
+            this.configTimeSinceSent(this.selectedThread, 'timeSinceConnected', timeNow);
             this.$socket.emit('operatorConnectResponse', {
                 operatorId: this.global.userId,
-                threadId: this.selectedThread.threadId
+                threadId: this.selectedThread.threadId,
+                timeConnected: timeNow
             });
         },
-        getAvatarURL: function(sender, size){
-            return `https://www.gravatar.com/avatar/${sender.gravatarHash}?s=${size}&d=identicon`;
-            // return await util.getAvatarURL(sender);
+        configAvatarURL: async function(sender, size){
+            if(this.avatarURLs[sender.id]){
+                sender.avatarURL = this.avatarURLs[sender.id];
+                return;
+            }
+            this.avatarURLs[sender.id] = sender.avatarURL = await util.getAvatarURL(sender, size);
         },
-        timeSinceSent: function(object, key){
-            object[key] = moment(messageData.time).fromNow();
+        configTimeSinceSent: function(object, key, time){
+            object[key] = moment(time).fromNow()
+            setInterval(
+                () => {object[key] = moment(time).fromNow()},
+                TIME_SINCE_SENT_REFRESH_RATE
+            );
+        },
+        scrollToBottomIf: function(div, condition){
+            setTimeout( (div, condition) => {
+                if (condition){
+                    div.scrollTop = div.scrollHeight - div.clientHeight;
+                } 
+            }, 50, div, condition);
         }
     },
 }       
