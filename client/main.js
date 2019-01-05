@@ -25,9 +25,7 @@ function main() {
         { path: '/auth/code', name: 'loginCode', component: require('./auth/loginCode.vue') },
         { path: '/onboard/tag', name: 'onboardTag', component: require('./onboard/onboardTag.vue') },
         { path: '/onboard/auth/:type/:tag', name: 'onboardAuth', component: require('./onboard/onboardAuth.vue') },
-        { path: '/users', name: 'users', component: require('./users/users.vue') },
-        { path: '/groups', name: 'groups', component: require('./groups/groups.vue') },
-        { path: '/questions', name: 'questions', component: require('./questions/questions.vue') },
+        { path: '/settings', name: 'settings', component: require('./settings/settings.vue') },
         { path: '/chat', name: 'chat', component: require('./chat/chat.vue') },
         { path: '*', redirect: 'welcome' }
     ];

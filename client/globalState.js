@@ -4,6 +4,27 @@ var state = {
     onboardStatus: undefined,
     passwordSet: undefined,
     myId: undefined,
+    get ourName() {
+        return localStorage.getItem('ourName') || '';
+    },
+    set ourName(value) {
+        if (value) localStorage.setItem('ourName', value);
+        else localStorage.removeItem('ourName');
+    },
+    get gravatarHash() {
+        return localStorage.getItem('gravatarHash') || '';
+    },
+    set gravatarHash(value) {
+        if (value) localStorage.setItem('gravatarHash', value);
+        else localStorage.removeItem('gravatarHash');
+    },
+    get avatarURL() {
+        return localStorage.getItem('avatarURL') || '';
+    },
+    set avatarURL(value) {
+        if (value) localStorage.setItem('avatarURL', value);
+        else localStorage.removeItem('avatarURL');
+    },
     get userId() {
         return localStorage.getItem('userId') || '';
     },

@@ -124,7 +124,7 @@ module.exports = {
             });
         },
         loadGroups: async function() {
-            util.fetch.call(this, '/api/groups/')
+            util.fetch.call(this, '/api/settings/groups')
             .then( res => {
                 this.groups = res.theJson;
             });
@@ -159,7 +159,7 @@ module.exports = {
         },
         saveGroupData: function() {
             const options = {method:'post', body:{groups:this.groups}};
-            util.fetch.call(this, 'api/groups', options);
+            util.fetch.call(this, 'api/settings/groups', options);
         }
     },
     mounted: async function() {

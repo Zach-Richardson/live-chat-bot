@@ -30,8 +30,7 @@ class WebServer {
         this.app.use(bodyParser.json());
         this.app.use('/api/onboard/', (new api.OnboardAPIV1({server: this})).router);
         this.app.use('/api/auth/', (new api.AuthenticationAPIV1({server: this})).router);
-        this.app.use('/api/questions/', (new api.QuestionsAPIV1({server: this})).router);
-        this.app.use('/api/groups/', (new api.GroupsAPIV1({server: this})).router);
+        this.app.use('/api/settings/', (new api.SettingsAPIV1({server: this})).router);
         this.app.use('/static/', express.static(path.join(root, 'static'), {strict: true}));
         this.app.get('/env.js', (req, res) => {
             res.setHeader('Content-Type', 'application/javascript');

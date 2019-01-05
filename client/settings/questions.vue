@@ -24,10 +24,7 @@ div [class*="pull right"] {
     <div class="ui container left aligned">
         <sui-grid>
             <sui-grid-row>
-                <!-- <sui-grid-column :width="4">
-
-                </sui-grid-column> -->
-                <sui-grid-column :width="12">
+                <sui-grid-column :width="16">
                     <sui-grid 
                         style="padding-top:5%;"
                         divided="vertically"
@@ -314,7 +311,7 @@ module.exports = {
             this.changesMade = true;
         },
         loadData: function(){
-            util.fetch.call(this, '/api/questions/', {method: 'get'})
+            util.fetch.call(this, '/api/settings/questions/', {method: 'get'})
             .then(result => {
                 this.questionsOriginal = JSON.stringify(result.theJson);
                 this.questions = result.theJson;
@@ -327,7 +324,7 @@ module.exports = {
                 }
             });
 
-            util.fetch.call(this, '/api/groups/', {method: 'get'})
+            util.fetch.call(this, '/api/settings/groups/', {method: 'get'})
             .then(result => {
                 result.theJson.forEach(group => {
                     this.groupsForDropdown.push({
@@ -395,7 +392,7 @@ module.exports = {
             this.nextRoute();
         },
         saveData: function() {
-            util.fetch('/api/questions/', {
+            util.fetch('/api/settings/questions/', {
                 method:'post',
                 body: { questions: this.questions }
             });

@@ -1,17 +1,21 @@
 <template lang="html">
     <div class="ui container left aligned">
-
-        <div class="ui basic segment" style="padding-top:5%">
-            <h2 class="ui header">
-                Chat
-            </h2>
-        </div>
-        
         <sui-grid>
-            <sui-grid-row :cols="2">
+            <sui-grid-row :cols="2" style="padding:0px;margin-top:100px">
                 <!-- THREAD LIST -->
-                <sui-grid-column :width="6" style="padding-right:0px">
-                    <sui-list divided relaxed style="overflow-x:hidden; overflow-y: scroll; height:650px">
+                <sui-grid-column :width="4" style="padding:0px;">
+                    <sui-container
+                        v-if="threads.length==0"
+                        style="text-align:center;height:100%;background-color:#ccc;border-right: 1px solid #ccc;">
+                        <sui-label
+                            color="grey"
+                            size="large"
+                            style="margin-top:50%">0 active threads</sui-label>
+                    </sui-container>
+                    <sui-list
+                        v-else
+                        divided relaxed 
+                        style="overflow-x:hidden; overflow-y: scroll;height:700px">
                         <sui-list-item
                             v-for="thread in threads"
                             style="padding:3px"
@@ -56,25 +60,20 @@
                 <!-- /THREAD LIST -->
 
                 <!-- MESSAGE WINDOW -->
-                <sui-grid-column :width="10" style="padding-left:0px">
+                <sui-grid-column :width="12" style="padding-left:0px">
                     <sui-container
-                        v-if="!selectedThread"
-                        style="text-align:center;height:612px;">
+                        v-if="!selectedThread||threads.length==0"
+                        style="text-align:center;height:612px;background-color:#ccc">
                         <sui-label
                             v-if="threads.length!=0"
                             color="grey"
                             size="large"
                             style="margin-top:50%">Thread not selected!</sui-label>
-                        <sui-label
-                            v-else
-                            color="grey"
-                            size="large"
-                            style="margin-top:50%">No threads are available!</sui-label>
                     </sui-container>
                     <sui-container
                         id="messageWindow" 
                         v-else
-                        style="overflow-x:hidden; overflow-y: scroll; height:612px;">
+                        style="overflow-x:hidden; overflow-y: scroll;height:100%;">
                         <sui-list relaxed style="background-color:#e8e8e8;margin-top:0px">
                             <!-- Message History -->
                             <sui-list-item v-for="message in selectedThread.messageHistory">
@@ -89,16 +88,7 @@
                                             <object type="image/svg+xml" 
                                                 :data="message.sender.avatarURL" />
                                         </sui-grid-column>
-                                        <sui-grid-column 
-                                            :class="{
-                                                'six wide':(message.text.length<=30),
-                                                'seven wide':(message.text.length>=30),
-                                                'eight wide':(message.text.length>=40),
-                                                'nine wide':(message.text.length>=50),
-                                                'ten wide':(message.text.length>=60),
-                                                'eleven wide':(message.text.length>=70),
-                                                'twelve wide':(message.actions||message.text.length>=80)                                                
-                                            }">
+                                        <sui-grid-column :class="messageWidthRules(message)">
                                             <!-- Message Bubble -->
                                             <div style="padding:11px;word-wrap:break-word" class="ui grey segment">
                                                 <a
@@ -163,16 +153,7 @@
                                             <object type="image/svg+xml" 
                                                 :data="message.sender.avatarURL" />
                                         </sui-grid-column>
-                                        <sui-grid-column 
-                                            :class="{
-                                                'six wide':(message.text.length<=30),
-                                                'seven wide':(message.text.length>=30),
-                                                'eight wide':(message.text.length>=40),
-                                                'nine wide':(message.text.length>=50),
-                                                'ten wide':(message.text.length>=60),
-                                                'eleven wide':(message.text.length>=70),
-                                                'twelve wide':(message.actions||message.text.length>=80)                                                
-                                            }">
+                                        <sui-grid-column :class="messageWidthRules(message)">
                                             <!-- Message Bubble -->
                                             <div style="padding:11px;word-wrap:break-word" class="ui red segment">
                                                 <a
@@ -189,7 +170,7 @@
                                                     <sui-button
                                                         v-for="action in message.actions"
                                                         :style="{color:action.color}"
-                                                        style="text-align:left;width:100%"
+                                                        style="text-align:left;width:100%">
                                                         {{action.title}}
                                                     </sui-button>
                                                 </div>
@@ -238,7 +219,7 @@ module.exports = {
         selectedThread: null,
         message: '',
         threads: [],
-        avatarURLs: {}
+        avatarURLs: {},
     }),
     sockets: {
         connect: function () {
@@ -279,6 +260,17 @@ module.exports = {
         }
     },
     methods: {
+        messageWidthRules: function(message){
+            return {
+                'six wide':(message.text.length<=30),
+                'seven wide':(message.text.length>=30),
+                'eight wide':(message.text.length>=40),
+                'nine wide':(message.text.length>=50),
+                'ten wide':(message.text.length>=60),
+                'eleven wide':(message.text.length>=70),
+                'twelve wide':(message.actions||message.text.length>=80)
+            };                                                
+        },
         select: function(thread) {
             this.selectedThread = thread;
             setTimeout( () => {
@@ -300,12 +292,11 @@ module.exports = {
                 timeSinceSent: '',
                 sender:{
                     id: this.global.userId,
-                    name: 'needstobewiredin',
-                    gravatarHash: 'a',
-                    avatarURL: ''
+                    name: this.global.ourName,
+                    gravatarHash: this.global.gravatarHash,
+                    avatarURL: this.global.avatarURL
                 }
             };
-            this.configAvatarURL(msg.sender, '35');
             this.configTimeSinceSent(msg, 'timeSinceSent', msg.time);
             this.threads.find(t => t.threadId == this.selectedThread.threadId).messages.push(msg);
             this.$socket.emit('message', 

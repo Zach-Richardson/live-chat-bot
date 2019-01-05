@@ -115,10 +115,6 @@ module.exports = {
                     this.admins.push(newAdmin);
                     this.newAdminTag = '';
                     this.tagError = '';
-                    console.log('this.groups.find(group => group.name==Default)');
-                    console.log(this.groups.find(group => group.name=='Default'));
-                    console.log('newAdmin : ');
-                    console.log(newAdmin);
                     this.groups.find(group => group.name=='Default').users.push(newAdmin);
                     this.saveGroupData();
                 }else{
@@ -129,13 +125,11 @@ module.exports = {
             
         },
         loadGroups: async function(admin) {
-            this.groups = (await util.fetch.call(this, '/api/groups/')).theJson;
-            console.log('this.groups : ');
-            console.log(this.groups);
+            this.groups = (await util.fetch.call(this, '/api/settings/groups/')).theJson;
         },
         saveGroupData: function() {
-            const options = {method:'post', body:{groups:this.groups}};
-            util.fetch.call(this, 'api/groups', options);
+            const options = {method:'post', body:{ groups:this.groups }};
+            util.fetch.call(this, 'api/settings/groups', options);
         }
     },
     mounted: async function() {

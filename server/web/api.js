@@ -271,15 +271,18 @@ class AuthenticationAPIV1 extends APIHandler {
     }
 }
 
-class QuestionsAPIV1 extends APIHandler {
+class SettingsAPIV1 extends APIHandler {
 
     constructor(options) {
         super(options);
-        this.router.get('/*', this.asyncRoute(this.onGet, false));
-        this.router.post('/*', this.asyncRoute(this.onPost, false));
+        this.router.get('/questions', this.asyncRoute(this.onGetQuestions, false));
+        this.router.post('/questions', this.asyncRoute(this.onPostQuestions, false));
+        this.router.get('/groups', this.asyncRoute(this.onGetGroups, false));
+        this.router.post('/groups', this.asyncRoute(this.onPostGroups, false));
+        this.router.get('/user', this.asyncRoute(this.onGetUser, false));
     }
 
-    async onGet(req, res){
+    async onGetQuestions(req, res){
         let questions = await relay.storage.get('live-chat-bot', 'questions');
         if(!questions){
             questions = [
@@ -302,59 +305,51 @@ class QuestionsAPIV1 extends APIHandler {
                     ]
                 }
             ];
-            await relay.storage.set('live-chat-bot', 'questions', questions);
+            relay.storage.set('live-chat-bot', 'questions', questions);
         }
         res.status(200).json(questions);
         
     }
 
-    async onPost(req, res) {
+    async onPostQuestions(req, res) {
         let questions = req.body.questions;
         relay.storage.set('live-chat-bot', 'questions', questions);
         res.status(200);
     }
 
-}
-
-class GroupsAPIV1 extends APIHandler {
-
-    constructor(options) {
-        super(options);
-        this.router.get('/*', this.asyncRoute(this.onGet, false));
-        this.router.post('/*', this.asyncRoute(this.onPost, false));
-    }
-
-    async onGet(req, res){
+    async onGetGroups(req, res){
         let groups = await relay.storage.get('live-chat-bot', 'groups');
-        if(groups){
-            res.status(200).json(groups);
-        }else{
-            let newGroups = [
+        if(!groups){
+            groups = [
                 {
-                    name:'Default',
+                    name:'All',
                     users: []
                 }
             ];
             const admins = await this.server.bot.getAdministrators();
-            admins.map(admin => newGroups[0].users.push(admin));
-            relay.storage.set('live-chat-bot', 'groups', newGroups);
-            res.status(200).json(newGroups);
+            admins.map(admin => groups[0].users.push(admin));
+            relay.storage.set('live-chat-bot', 'groups', groups);
+            res.status(200).json(groups);
         }
-        
+        res.status(200).json(groups);
     }
 
-    async onPost(req, res){
+    async onPostGroups(req, res){
         let groups = req.body.groups;
         await relay.storage.set('live-chat-bot', 'groups', groups);
         res.status(200);
     }
 
+    async onGetUser(req, res){
+        let userId = req.get('userId');
+        const userData = (await this.server.bot.getUsers([userId]))[0];
+        res.status(200).json(userData);
+    }
 }
 
 module.exports = {
     APIHandler,
     OnboardAPIV1,
     AuthenticationAPIV1,
-    QuestionsAPIV1,
-    GroupsAPIV1
+    SettingsAPIV1
 };
