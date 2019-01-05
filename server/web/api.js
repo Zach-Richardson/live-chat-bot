@@ -316,51 +316,6 @@ class QuestionsAPIV1 extends APIHandler {
 
 }
 
-class BusinessInfoAPIV1 extends APIHandler {
-
-    constructor(options) {
-        super(options);
-        this.router.get('/*', this.asyncRoute(this.onGet, false));
-        this.router.post('/*', this.asyncRoute(this.onPost, false));
-    }
-
-    async onGet(req, res){
-        let businessInfoData = await relay.storage.get('live-chat-bot', 'business-info');
-        if(!businessInfoData){
-            businessInfoData = {
-                open: '08:00',
-                close: '20:00',
-                outOfOfficeMessage: 'This is the default out of office hours message.',
-                forwardMessage: 'This is the default forward to distribution message.',
-                action: 'Forward to Tag'
-            };
-            relay.storage.set('live-chat-bot', 'business-info', businessInfoData);
-        }
-        res.status(200).json(businessInfoData);
-    }
-
-    async onPost(req, res) {
-        let businessInfo = req.body.businessInfoData;
-        relay.storage.set('live-chat-bot', 'business-info', businessInfo);
-        res.status(200);
-    }
-
-}
-
-class TagsAPIV1 extends APIHandler {
-
-    constructor(options) {
-        super(options);
-        this.router.get('/*', this.asyncRoute(this.onGet, false));
-    }
-
-    async onGet(req, res){
-        let tags = (await this.server.bot.atlas.fetch('/v1/tag-pick/')).results;
-        res.status(200).json({tags});
-    }
-
-}
-
 class GroupsAPIV1 extends APIHandler {
 
     constructor(options) {
@@ -401,7 +356,5 @@ module.exports = {
     OnboardAPIV1,
     AuthenticationAPIV1,
     QuestionsAPIV1,
-    BusinessInfoAPIV1,
-    TagsAPIV1,
     GroupsAPIV1
 };

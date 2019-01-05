@@ -28,8 +28,6 @@ function main() {
         { path: '/users', name: 'users', component: require('./users/users.vue') },
         { path: '/groups', name: 'groups', component: require('./groups/groups.vue') },
         { path: '/questions', name: 'questions', component: require('./questions/questions.vue') },
-        { path: '/businessInfo', name: 'businessInfo', component: require('./businessInfo/businessInfo.vue') },
-        { path: '/archive', name: 'archive', component: require('./archive/archive.vue') },
         { path: '/chat', name: 'chat', component: require('./chat/chat.vue') },
         { path: '*', redirect: 'welcome' }
     ];

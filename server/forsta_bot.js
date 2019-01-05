@@ -33,7 +33,6 @@ class ForstaBot {
         this.msgReceiver.addEventListener('error', this.onError.bind(this));
         await this.msgReceiver.connect();
         //bot
-        this.getBusinessInfo = cache.ttl(120, () => relay.storage.get('live-chat-bot', 'business-info'));
         this.getQuestions = cache.ttl(120, () => relay.storage.get('live-chat-bot', 'questions'));
         this.getGroups = cache.ttl(120, () => relay.storage.get('live-chat-bot', 'groups'));
         this.threadStatus = {};
@@ -81,9 +80,7 @@ class ForstaBot {
             
         }).bind(this);
         let sendMessage = (async function (threadId, text){
-            const outgoingMessage = await this.sendMessage(this.threadStatus[threadId].dist, threadId, text);
-            const messageBody = JSON.parse(outgoingMessage.message.dataMessage.body)[0];
-            this.saveToMessageHistory(messageBody);
+            await this.sendMessage(this.threadStatus[threadId].dist, threadId, text);
         }).bind(this);
         io.on('connect', function (socket) {
             let s = socket;
@@ -112,7 +109,6 @@ class ForstaBot {
             await this.initializeNewThread(msg);
             return;
         }
-        this.saveToMessageHistory(msg, event.data.message.attachments);
         await this.saveToThreadMessageHistory(msg);       
         await this.stepThreadState(this.threadStatus[msg.threadId], msg);
     }
@@ -162,7 +158,7 @@ class ForstaBot {
         if(threadStatus.currentQuestion.type == 'Multiple Choice' && !msg.data){
             this.sendMessage(threadStatus.dist, threadStatus.threadId, 
                 'Please select a response');
-                return;
+            return;
         }
         if(threadStatus.operator){
             const sender = (await this.getUsers([msg.sender.userId]))[0];
@@ -196,7 +192,6 @@ class ForstaBot {
             let outgoingMessage = await this.sendMessage(threadStatus.dist, threadStatus.threadId, operatorConnectMessage);
             let messageBody = JSON.parse(outgoingMessage.message.dataMessage.body)[0];
             await this.saveToThreadMessageHistory(messageBody);
-            this.saveToMessageHistory(messageBody);
             let group = (await this.getGroups()).find(group => group.name == actionOption);
             group.users.forEach(user => {
                 if(this.sockets[user.id]){
@@ -221,7 +216,6 @@ class ForstaBot {
         }
         let messageBody = JSON.parse(outgoingMessage.message.dataMessage.body)[0];
         await this.saveToThreadMessageHistory(messageBody);
-        this.saveToMessageHistory(messageBody);
     }
 
     async saveToThreadMessageHistory(message){
@@ -243,67 +237,6 @@ class ForstaBot {
             actions: message.data.actions || null
         };
         threadStatus.messageHistory.push(formattedMessage);
-    }
-
-    async saveToMessageHistory(message, attachments=[]) {
-        const sender = (await this.getUsers([message.sender.userId]))[0];
-        const distribution = await this.resolveTags(message.distribution.expression);
-        const recipients = await this.getUsers(distribution.userids);
-        //message text
-        const tempBody = message.data && message.data.body;
-        const tempText = tempBody && tempBody.find(x => x.type === 'text/plain');
-        const messageText = (tempText && tempText.value) || '';        
-        //attachments
-        const attachmentMeta = (message.data && message.data.attachments) || [];
-        if (attachments.length != attachmentMeta.length) {
-            console.error('Received mismatched attachments with message:', message);
-            return;
-        }
-        let attachmentIds = attachments.map(x => uuid4());
-
-        for (let i = 0; i < attachmentIds.length; i++) {
-            this.pgStore.addAttachment({
-                id: attachmentIds[i],
-                data: attachments[i].data,
-                type: attachmentMeta[i].type,
-                name: attachmentMeta[i].name,
-                messageId: message.messageId
-            });
-        }
-
-        this.pgStore.addMessage({
-            payload: JSON.stringify(message),
-            received: new Date(Date.now()),
-            distribution: JSON.stringify(distribution),
-            messageId: message.messageId,
-            threadId: message.threadId,
-            senderId: message.sender.userId,
-            senderLabel: this.fqLabel(sender),
-            recipientIds: recipients.map(user => user.id),
-            recipientLabels: recipients.map(user => this.fqLabel(user)),
-            attachmentIds,
-            tsMain: messageText,
-            tsTitle: message.threadTitle
-        });        
-    }
-
-    outOfOffice(businessInfo){
-        if(!businessInfo) return false;
-        const hoursNow = moment().hours();
-        const minsNow = moment().minutes();
-        const openHours = Number(businessInfo.open.split(':')[0]);
-        const openMins = Number(businessInfo.open.split(':')[1]);
-        const closeMins = Number(businessInfo.close.split(':')[1]);
-        let closeHours = Number(businessInfo.close.split(':')[0]);
-
-        if(openHours > closeHours) closeHours += 24;
-        if( (hoursNow < openHours) || (hoursNow === openHours && minsNow < openMins) ){
-            return true;
-        }
-        if( (hoursNow > closeHours) || (hoursNow === closeHours && minsNow > closeMins) ){
-            return true;
-        }
-        return false;
     }
 
     async sendMessage(dist, threadId, text){

@@ -69,18 +69,6 @@ div{
                     <a :class="{'white': currentRoute=='/chat'||hovering=='chat'}">Chat</a>
                 </sui-list-content>
             </sui-list-item>
-            <sui-list-item @click="archive()" @mouseenter="hovering='archive'" @mouseleave="hovering=''">
-                <sui-list-icon 
-                    name="archive" 
-                    size="large" 
-                    vertical-align="middle" 
-                    :class="{
-                        'white':currentRoute=='/archive'||hovering=='archive',
-                        'lightgrey':!(currentRoute=='/archive'||hovering=='archive')}" /> 
-                <sui-list-content>
-                    <a :class="{'white': currentRoute=='/archive'||hovering=='archive'}">Archive</a>
-                </sui-list-content>
-            </sui-list-item>
             <sui-list-item @click="questions()" @mouseenter="hovering='questions'" @mouseleave="hovering=''">
                 <sui-list-icon 
                     name="sitemap" 
@@ -91,18 +79,6 @@ div{
                         'lightgrey':!(currentRoute=='/questions'||hovering=='questions')}" /> 
                 <sui-list-content>
                     <a :class="{'white': currentRoute=='/questions'||hovering=='questions'}">Questions</a>
-                </sui-list-content>
-            </sui-list-item>
-            <sui-list-item @click="businessInfo()" @mouseenter="hovering='businessInfo'" @mouseleave="hovering=''">
-                <sui-list-icon 
-                    name="clock" 
-                    size="large" 
-                    vertical-align="middle" 
-                    :class="{
-                        'white':currentRoute=='/businessInfo'||hovering=='businessInfo',
-                        'lightgrey':!(currentRoute=='/businessInfo'||hovering=='businessInfo')}" /> 
-                <sui-list-content>
-                    <a :class="{'white': currentRoute=='/businessInfo'||hovering=='businessInfo'}">Business Info</a>
                 </sui-list-content>
             </sui-list-item>
             <sui-list-item  @click="users()" @mouseenter="hovering='users'" @mouseleave="hovering=''">
@@ -183,17 +159,9 @@ module.exports = {
             this.currentRoute = '/chat';
             this.$router.push({ name: 'chat' });
         },
-        archive: function () {
-            this.currentRoute = '/archive';
-            this.$router.push({ name: 'archive' });
-        },
         questions: function () {
             this.currentRoute = '/questions';
             this.$router.push({ name: 'questions' });
-        },
-        businessInfo: function () {
-            this.currentRoute = '/businessInfo';
-            this.$router.push({ name: 'businessInfo' });
         },
         users: function () {
             this.currentRoute = '/users';

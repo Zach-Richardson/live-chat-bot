@@ -1,12 +1,10 @@
 const api = require('./api');
 const bodyParser = require('body-parser');
 const express = require('express');
-const messagesApi = require('./messages-api');
 const morgan = require('morgan');
 const path = require('path');
 const process = require('process');
 const herokuSslRedirect = require('heroku-ssl-redirect');
-
 
 const root = `${__dirname}/../../dist`;
 const build = require(`${root}/build.json`);
@@ -33,12 +31,8 @@ class WebServer {
         this.app.use('/api/onboard/', (new api.OnboardAPIV1({server: this})).router);
         this.app.use('/api/auth/', (new api.AuthenticationAPIV1({server: this})).router);
         this.app.use('/api/questions/', (new api.QuestionsAPIV1({server: this})).router);
-        this.app.use('/api/business-info/', (new api.BusinessInfoAPIV1({server: this})).router);
         this.app.use('/api/groups/', (new api.GroupsAPIV1({server: this})).router);
-        this.app.use('/api/messages/', (new messagesApi.MessagesAPIv1({server: this})).router);
-        this.app.use('/api/tags/', (new api.TagsAPIV1({server: this})).router);
         this.app.use('/static/', express.static(path.join(root, 'static'), {strict: true}));
-        
         this.app.get('/env.js', (req, res) => {
             res.setHeader('Content-Type', 'application/javascript');
             res.send(`self.F = self.F || {}; F.env = ${JSON.stringify(jsenv)};\n`);

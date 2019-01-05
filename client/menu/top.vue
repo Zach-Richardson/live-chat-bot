@@ -47,14 +47,8 @@ a:hover{
                         <div class="item" @click="chat">
                             <i class="comment icon tiny"></i> Chat 
                         </div>
-                        <div class="item" @click="archive">
-                            <i class="archive icon tiny"></i> Archive 
-                        </div>
                         <div class="item" @click="questions">
                             <i class="sitemap icon tiny"></i> Questions 
-                        </div>
-                        <div class="item" @click="businessInfo">
-                            <i class="clock icon tiny"></i> Business Info 
                         </div>
                         <div class="item" @click="users">
                             <i class="user icon tiny"></i> Users
@@ -79,7 +73,7 @@ a:hover{
                         <p>Any unsaved changes may be lost.</p>
                     </sui-modal-description>
                 </sui-modal-content>
-                <sui-modal-actions style="padding:10px">
+                <sui-modal-actions style="margin-bottom:20px;padding:10px">
                     <sui-button 
                         class="yellow" 
                         floated="left"
@@ -113,14 +107,8 @@ module.exports = {
         chat: function () {
             this.$router.push({ name: 'chat' });
         },
-        archive: function () {
-            this.$router.push({ name: 'archive' });
-        },
         questions: function () {
             this.$router.push({ name: 'questions' });
-        },
-        businessInfo: function () {
-            this.$router.push({ name: 'businessInfo' });
         },
         users: function () {
             this.$router.push({ name: 'users' });
