@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div style="height:100% !important">
         <top-menu v-if="global.apiToken&&global.onboardStatus" />
         <router-view />
     </div>

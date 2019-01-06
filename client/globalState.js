@@ -4,6 +4,13 @@ var state = {
     onboardStatus: undefined,
     passwordSet: undefined,
     myId: undefined,
+    get threads() {
+        return JSON.parse(localStorage.getItem('threads')) || [];
+    },
+    set threads(value) {
+        if (value) localStorage.setItem('threads', JSON.stringify(value));
+        else localStorage.removeItem('threads');
+    },
     get ourName() {
         return localStorage.getItem('ourName') || '';
     },

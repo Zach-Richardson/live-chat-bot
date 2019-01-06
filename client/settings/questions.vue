@@ -17,6 +17,12 @@ div [class*="pull right"] {
     width: 70px;
     vertical-align: middle;
 }
+.questionEditor{
+    margin:20px 0px 20px 0px !important;
+    padding-top:5%;
+    border:1px solid #ddd;
+    border-radius:5px
+}
 
 </style>
  
@@ -25,9 +31,8 @@ div [class*="pull right"] {
         <sui-grid>
             <sui-grid-row>
                 <sui-grid-column :width="16">
-                    <sui-grid 
-                        style="padding-top:5%;"
-                        divided="vertically"
+                    <sui-grid
+                        class="questionEditor"
                         v-for="question in questions">
                         <sui-grid-row 
                             :columns="1">
@@ -85,7 +90,8 @@ div [class*="pull right"] {
                                     v-model="question.type" />
                             </sui-grid-column>
                         </sui-grid-row>
-                        <sui-grid-row v-if="question.type!=='Free Response'">
+                        <sui-divider />
+                        <sui-grid-row v-if="question.type=='Multiple Choice'">
                             <sui-grid-column>
                                 <sui-grid 
                                     v-for="response in question.responses">
@@ -202,6 +208,7 @@ div [class*="pull right"] {
                                 </sui-list>
                             </sui-grid-column>
                         </sui-grid-row>
+                        </sui-segment>
                     </sui-grid>
 
                     <div style="margin-bottom:100px">
@@ -220,9 +227,6 @@ div [class*="pull right"] {
                 </sui-grid-column>
             </sui-grid-row>
         </sui-grid>
-
-          
-        
 
         <div>
             <sui-modal v-model="showingSaveChangesModal">

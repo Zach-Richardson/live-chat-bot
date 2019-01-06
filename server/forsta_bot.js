@@ -127,6 +127,7 @@ class ForstaBot {
             timeConnected: null,
             timeSinceConnected: '',
             timeEnded: null,
+            timeSinceEnded: '',
             questions,
             currentQuestion: questions[0],
             messageHistory: [],
@@ -168,13 +169,13 @@ class ForstaBot {
                 message: {
                     text: msg.data.body[0].value,
                     time: (new Date()).toUTCString(),
+                    timeSinceSent: '',
                     sender: {
                         name: this.fqName(sender),
                         id: msg.sender.userId,
                         gravatarHash: sender.gravatar_hash,
                         avatarURL: ''
                     },
-                    timeSinceSent: ''
                 }
             });
             return;
@@ -425,14 +426,13 @@ class ForstaBot {
 
     async getAdministrators() {
         const adminIds = await relay.storage.get('authentication', 'adminIds', []);
-        const adminUsers = await this.getUsers(adminIds);
-        const admins = adminUsers.map(u => {
-            return {
-                id: u.id,
-                label: this.fqLabel(u)
-            };
-        });
-        return admins;
+        const byLastName = (a, b) => {
+            if (a.last_name[0] < b.last_name[0]) return -1;
+            if (a.last_name[0] > b.last_name[0]) return 1;
+            return 0;
+        };
+        const adminUsers = (await this.getUsers(adminIds)).sort(byLastName);
+        return adminUsers;
     }
 
     async broadcastNotice({note, actorUserId, listAll=true}) {

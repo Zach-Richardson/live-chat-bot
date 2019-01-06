@@ -72,7 +72,7 @@ const themeColors = {
     black: '#3a3b3d'
 };
 
-async function textAvatarURL(text, size) {
+function textAvatarURL(text, size) {
     const intHash = parseInt(md5(text).substr(0, 10), 16);
     const label = Object.keys(themeColors)[intHash % Object.keys(themeColors).length];
     const bgColor = themeColors[label];
@@ -97,12 +97,12 @@ async function textAvatarURL(text, size) {
     return URL.createObjectURL(new Blob(svg, {type: 'image/svg+xml'}));
 }
 
-
+let _defaultGravatar = null;
 async function getAvatarURL(userData, size){
     const gravatarURL = `https://www.gravatar.com/avatar/${userData.gravatarHash}`;
     let gravatar = await request(gravatarURL);
-    let defaultGravatar = await request('https://www.gravatar.com/avatar/a?f=y');
-    if(md5(gravatar)==md5(defaultGravatar)){
+    _defaultGravatar = _defaultGravatar || (await request('https://www.gravatar.com/avatar/a?f=y'));
+    if(md5(gravatar)==md5(_defaultGravatar)){
         const userFL = userData.name.split(' ');
         const initials = userFL[0].charAt(0).toUpperCase() + userFL[1].charAt(0).toUpperCase();
         return await textAvatarURL(initials, size);

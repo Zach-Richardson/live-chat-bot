@@ -38,7 +38,7 @@ div.listgap {
                                 <sui-grid style="margin:10px">
                                     <sui-grid-row v-for="admin in group.users" :key="admin.id">
                                         <sui-grid-column :width="10">
-                                            <h5 v-text="admin.label"></h5>
+                                            <h5>{{admin.first_name}} {{admin.last_name}}</h5>
                                         </sui-grid-column>
                                         <sui-grid-column :width="6">
                                             <sui-dropdown text="Change Group">
@@ -56,6 +56,7 @@ div.listgap {
                             </sui-grid-column>
                             <sui-grid-column :width="2">
                                 <sui-button 
+                                    v-if="group.name!='All'"
                                     icon="trash"
                                     color="red"
                                     @click="deleteGroup(group)"/>
@@ -116,6 +117,7 @@ module.exports = {
             util.fetch.call(this, '/api/auth/admins/v1')
             .then(result => {
                 if (result.ok) {
+                    console.log(result.theJson.administrators);
                     this.admins = result.theJson.administrators;
                 }else{
                     console.log('error retrieving admin data from /api/auth/admins/v1');
@@ -133,10 +135,10 @@ module.exports = {
             if(group.name == 'All'){
                 return;
             }
-            let defaultGroup = this.groups.find(group => group.name=='Default');
+            let defaultGroup = this.groups.find(group => group.name=='All');
             group.users.forEach(user => {
                 defaultGroup.users.push(user);
-            })
+            });
             this.groups.splice(this.groups.indexOf(group), 1);
             this.saveGroupData();
         },

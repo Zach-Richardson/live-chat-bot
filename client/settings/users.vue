@@ -48,7 +48,7 @@ div.listgap {
                                     vertical-align="middle"/>
                             </sui-grid-column>
                             <sui-grid-column :width="12">
-                                <h3 v-text="admin.label"></h3>
+                                <h3>{{admin.first_name}} {{admin.last_name}}</h3>
                             </sui-grid-column>
                             <sui-grid-column :width="2">
                                 <sui-button 

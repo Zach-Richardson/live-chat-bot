@@ -1,5 +1,6 @@
 <template lang="html">
     <div class="ui container left aligned">
+        <sui-button size="large" content="Clear threads" @click="clearThreads()"/>
         <sui-grid>
             <sui-grid-row :cols="2" style="padding:0px;margin-top:100px">
                 <!-- THREAD LIST -->
@@ -161,7 +162,7 @@
                                                     v-text="message.sender.name" />
                                                 <span
                                                     style="font-size:0.8em;color:#777;margin-left:4px">
-                                                    {{message.timeSinceSent}}
+                                                    {{message.timeSinceSent}}  
                                                 </span>
                                                 <div  
                                                     style="margin-bottom:3px;margin-top:6px"
@@ -212,38 +213,68 @@
 const moment = require('moment');
 let shared = require('../globalState');
 const TIME_SINCE_SENT_REFRESH_RATE = 15*1000;//ms
+const MESSAGE_AVATAR_SIZE = '35';//px
+const THREAD_AVATAR_SIZE = '55';
 
 module.exports = {
     data: () => ({ 
         global: shared.state,
         selectedThread: null,
         message: '',
-        threads: [],
         avatarURLs: {},
+        threads: [],
+        moment
     }),
+    mounted: async function() {
+        let t = shared.state.threads;
+        const updateAvatars = (async function(t){
+            await this.configAvatarURL(t.user, THREAD_AVATAR_SIZE);
+            this.configTimeSinceSent(t, 'timeSinceStarted', t.timeStarted);
+            if(t.timeSinceConnected.length!=0){
+                this.configTimeSinceSent(t, 'timeSinceConnected', t.timeConnected);
+            }
+            t.messages.forEach(m => {
+                this.configAvatarURL(m.sender, MESSAGE_AVATAR_SIZE);
+                this.configTimeSinceSent(m, 'timeSinceSent', m.time);
+            });
+            t.messageHistory.forEach(m => {
+                this.configAvatarURL(m.sender, MESSAGE_AVATAR_SIZE);
+                this.configTimeSinceSent(m, 'timeSinceSent', m.time);
+            });
+        }).bind(this);
+        for(let i=0; i<t.length; i++){
+            await updateAvatars(t[i]);
+        }
+        this.threads = t;
+    },
     sockets: {
         connect: function () {
             //initializes the socket on page load
             this.$socket.emit('createConnection', this.global.userId);
         },
-        message: function (op) {
+        message: async function (op) {
             let mw = document.getElementById("messageWindow");
             const wasScrolledToBottom = mw.scrollHeight - mw.clientHeight <= mw.scrollTop + 1;
             let thread = this.threads.find(t => t.threadId == op.threadId);
             thread.messages.push(op.message);
             let cur = thread.messages[thread.messages.length-1];
-            this.configAvatarURL(cur.sender, '35');
+            await this.configAvatarURL(cur.sender, MESSAGE_AVATAR_SIZE);
             this.configTimeSinceSent(cur, 'timeSinceSent', cur.time);
             this.scrollToBottomIf(mw, wasScrolledToBottom);
+            this.updateThreads();
         },
-        operatorConnectionRequest: function (thread) {
+        operatorConnectionRequest: async function (thread) {
             this.configTimeSinceSent(thread, 'timeSinceStarted', thread.timeStarted);
-            this.configAvatarURL(thread.user, '55');
-            thread.messageHistory.forEach(msg => {
+            await this.configAvatarURL(thread.user, THREAD_AVATAR_SIZE);
+            let configMessage = (async function(msg){
                 this.configTimeSinceSent(msg, 'timeSinceSent', msg.time)
-                this.configAvatarURL(msg.sender, '35');
-            });
+                await this.configAvatarURL(msg.sender, MESSAGE_AVATAR_SIZE);
+            }).bind(this);
+            for(let i=0; i<thread.messageHistory.length; i++){
+                await configMessage(thread.messageHistory[i]);
+            }
             this.threads.push(thread);
+            this.updateThreads();
         },
         threadUpdate: function (op) {
             let thread = this.threads.find(t => t.threadId == op.threadId)
@@ -255,8 +286,9 @@ module.exports = {
                 }
             }
             if(thread.operator){
-                this.configAvatarURL(thread.operator, '55');
+                this.configAvatarURL(thread.operator, THREAD_AVATAR_SIZE);
             }
+            this.updateThreads();
         }
     },
     methods: {
@@ -281,6 +313,7 @@ module.exports = {
         },
         archive: function(thread) {
             this.threads.splice(this.threads.indexOf(thread), 1);
+            shared.state.archive.push(thread);
         },
         sendMessage: async function() {
             if(this.message.length==0) return;
@@ -306,6 +339,7 @@ module.exports = {
             });
             this.message = ''; //clear the message
             this.scrollToBottomIf(mw, wasScrolledToBottom);
+            this.updateThreads();
         },
         newestMessage: function(thread) {
             if(thread.messages.length==0){
@@ -334,13 +368,29 @@ module.exports = {
                 threadId: this.selectedThread.threadId,
                 timeConnected: timeNow
             });
+            this.updateThreads();
         },
         configAvatarURL: async function(sender, size){
-            if(this.avatarURLs[sender.id]){
-                sender.avatarURL = this.avatarURLs[sender.id];
+            const key = `${sender.id}${size}`;
+            if(this.avatarURLs[key]){
+                sender.avatarURL = this.avatarURLs[key];
                 return;
             }
-            this.avatarURLs[sender.id] = sender.avatarURL = await util.getAvatarURL(sender, size);
+            sender.avatarURL = this.avatarURLs[key] = await util.getAvatarURL(sender, size);
+        },
+        scrollToBottomIf: function(div, condition){
+            setTimeout( (div, condition) => {
+                if (condition){
+                    div.scrollTop = div.scrollHeight - div.clientHeight;
+                } 
+            }, 50, div, condition);
+        },
+        updateThreads: function(){
+            shared.state.threads = this.threads;
+        },
+        clearThreads: function(){
+            shared.state.threads = [];
+            this.threads = [];
         },
         configTimeSinceSent: function(object, key, time){
             object[key] = moment(time).fromNow()
@@ -349,13 +399,6 @@ module.exports = {
                 TIME_SINCE_SENT_REFRESH_RATE
             );
         },
-        scrollToBottomIf: function(div, condition){
-            setTimeout( (div, condition) => {
-                if (condition){
-                    div.scrollTop = div.scrollHeight - div.clientHeight;
-                } 
-            }, 50, div, condition);
-        }
     },
 }       
 </script>
