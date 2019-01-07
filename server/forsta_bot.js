@@ -37,7 +37,6 @@ class ForstaBot {
         this.getGroups = cache.ttl(120, () => relay.storage.get('live-chat-bot', 'groups'));
         this.threadStatus = {};
         this.sockets = {};
-        this.outgoingThreadId = uuid4();
     }
 
     async configureSocket(io){
@@ -82,6 +81,11 @@ class ForstaBot {
         let sendMessage = (async function (threadId, text){
             await this.sendMessage(this.threadStatus[threadId].dist, threadId, text);
         }).bind(this);
+        let endThread = (async function (threadId, timeEnded){
+            this.threadStatus[threadId].timeEnded = timeEnded;
+            await this.sendMessage(this.threadStatus[threadId].dist, threadId, 
+                `The live chat operator ended this conversation`);
+        }).bind(this);
         io.on('connect', function (socket) {
             let s = socket;
             socket.on('createConnection', function(userId) {
@@ -93,6 +97,9 @@ class ForstaBot {
             });
             socket.on('message', function(op) {
                 sendMessage(op.threadId, op.text);
+            });
+            socket.on('endThread', function(op) {
+                endThread(op.threadId, op.timeEnded);
             });
         });
         this.socketio = io;
@@ -159,6 +166,11 @@ class ForstaBot {
         if(threadStatus.currentQuestion.type == 'Multiple Choice' && !msg.data){
             this.sendMessage(threadStatus.dist, threadStatus.threadId, 
                 'Please select a response');
+            return;
+        }
+        if(threadStatus.timeEnded){
+            this.sendMessage(threadStatus.dist, threadStatus.threadId, 
+                'This conversation has been closed by the live chat operator.');
             return;
         }
         if(threadStatus.operator){

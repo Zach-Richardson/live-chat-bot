@@ -55,7 +55,7 @@ a:hover{
                             <i class="comment icon tiny"></i> Chat 
                         </div>
                         <div class="item" @click="settings">
-                            <i class="sitemap icon tiny"></i> Settings 
+                            <i class="cog icon tiny"></i> Settings 
                         </div>
                         <div class="item" @click="showingSignOutModal=true">
                             Sign Out

@@ -4,6 +4,20 @@ var state = {
     onboardStatus: undefined,
     passwordSet: undefined,
     myId: undefined,
+    get selectedThread() {
+        return JSON.parse(localStorage.getItem('selectedThread')) || null;
+    },
+    set selectedThread(value) {
+        if (value) localStorage.setItem('selectedThread', JSON.stringify(value));
+        else localStorage.removeItem('selectedThread');
+    },
+    get archive() {
+        return JSON.parse(localStorage.getItem('archive')) || [];
+    },
+    set archive(value) {
+        if (value) localStorage.setItem('archive', JSON.stringify(value));
+        else localStorage.removeItem('archive');
+    },
     get threads() {
         return JSON.parse(localStorage.getItem('threads')) || [];
     },

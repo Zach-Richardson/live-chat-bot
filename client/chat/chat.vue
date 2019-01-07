@@ -1,13 +1,14 @@
 <template lang="html">
     <div class="ui container left aligned">
         <sui-button size="large" content="Clear threads" @click="clearThreads()"/>
+        <sui-button size="large" content="Archive" @click="showingArchiveModal=true"/>
         <sui-grid>
             <sui-grid-row :cols="2" style="padding:0px;margin-top:100px">
                 <!-- THREAD LIST -->
-                <sui-grid-column :width="4" style="padding:0px;">
+                <sui-grid-column :width="4" style="padding:0px;height:658px">
                     <sui-container
                         v-if="threads.length==0"
-                        style="text-align:center;height:100%;background-color:#ccc;border-right: 1px solid #ccc;">
+                        style="text-align:center;background-color:#ccc;border-right: 1px solid #ccc;height:100%">
                         <sui-label
                             color="grey"
                             size="large"
@@ -16,7 +17,7 @@
                     <sui-list
                         v-else
                         divided relaxed 
-                        style="overflow-x:hidden; overflow-y: scroll;height:700px">
+                        style="overflow-x:hidden;overflow-y:scroll;height:100%">
                         <sui-list-item
                             v-for="thread in threads"
                             style="padding:3px"
@@ -74,7 +75,7 @@
                     <sui-container
                         id="messageWindow" 
                         v-else
-                        style="overflow-x:hidden; overflow-y: scroll;height:100%;">
+                        style="overflow-x:hidden; overflow-y: scroll;height:612px;">
                         <sui-list relaxed style="background-color:#e8e8e8;margin-top:0px">
                             <!-- Message History -->
                             <sui-list-item v-for="message in selectedThread.messageHistory">
@@ -185,7 +186,10 @@
                     </sui-container>
                     <!-- /Live Messages -->
                     <!-- Message Input Box -->
-                    <div class="flexbox ui icon input">
+                    <div
+                        :class="{'disabled':!selectedThread||selectedThread.timeEnded}" 
+                        class="flexbox ui icon input" 
+                        v-if="selectedThread&&!selectedThread.timeEnded">
                         <input 
                             @keyup.enter="sendMessage()" 
                             style="border-radius:0px"
@@ -200,11 +204,57 @@
                             @click="sendMessage()" 
                             class="paper plane outline link icon"></i>
                     </div>
+                    <div v-if="selectedThread" 
+                        style="text-align:center;">
+                        <sui-button
+                            v-if="!selectedThread.timeEnded"
+                            color="yellow"
+                            size="large"
+                            style="height:28px;width:100%;border-radius:0px;font-size:.85714286rem;padding:3px"
+                            @click="emitEndConversation()">End Conversation</sui-button>
+                        <sui-label
+                            v-else
+                            color="red"
+                            size="large"
+                            style="width:100%;border-radius:0px;margin:0px">
+                            Conversation ended {{selectedThread.timeSinceEnded}}
+                        </sui-label>
+                    </div>
                     <!-- /Message Input Box -->
                 </sui-grid-column>
                 <!-- /MESSAGE WINDOW -->
             </sui-grid-row>
         </sui-grid>
+
+        <div>
+            <sui-modal v-model="showingArchiveModal">
+                <sui-modal-header>Thread archive</sui-modal-header>
+                <sui-modal-content>
+                    <sui-modal-description>
+                        <sui-header>Restore a thread from the archive</sui-header>
+                        <sui-list divided style="height:500px;overflow-x:none;overflow-y:scroll">
+                            <sui-list-item 
+                                v-for="thread in global.archive">
+                                <sui-list-content>
+                                    <span v-text="thread.threadId" />
+                                    <span v-text="thread.timeStarted" />
+                                    <sui-button
+                                        content="Restore"
+                                        color="green"
+                                        @click="threads.push(thread)"/>
+                                </sui-list-content>
+                            </sui-list-item>
+                        </sui-list>
+                    </sui-modal-description>
+                </sui-modal-content>
+                <sui-modal-actions style="padding:10px">
+                    <sui-button 
+                        class="red"
+                        @click="showingArchiveModal=false"
+                        content="Close" />
+                </sui-modal-actions>
+            </sui-modal>
+        </div>
     </div>
 </template>
 
@@ -219,19 +269,23 @@ const THREAD_AVATAR_SIZE = '55';
 module.exports = {
     data: () => ({ 
         global: shared.state,
-        selectedThread: null,
+        selectedThread: [],
         message: '',
         avatarURLs: {},
         threads: [],
-        moment
+        showingArchiveModal: false,
+        threadArchive: []
     }),
     mounted: async function() {
         let t = shared.state.threads;
         const updateAvatars = (async function(t){
             await this.configAvatarURL(t.user, THREAD_AVATAR_SIZE);
             this.configTimeSinceSent(t, 'timeSinceStarted', t.timeStarted);
-            if(t.timeSinceConnected.length!=0){
+            if(t.timeSinceConnected){
                 this.configTimeSinceSent(t, 'timeSinceConnected', t.timeConnected);
+            }
+            if(t.timeSinceEnded){
+                this.configTimeSinceSent(t, 'timeSinceEnded', t.timeEnded);
             }
             t.messages.forEach(m => {
                 this.configAvatarURL(m.sender, MESSAGE_AVATAR_SIZE);
@@ -245,6 +299,8 @@ module.exports = {
         for(let i=0; i<t.length; i++){
             await updateAvatars(t[i]);
         }
+        this.selectedThread = shared.state.selectedThread;
+        this.threadArchive = shared.state.archive;
         this.threads = t;
     },
     sockets: {
@@ -261,7 +317,7 @@ module.exports = {
             await this.configAvatarURL(cur.sender, MESSAGE_AVATAR_SIZE);
             this.configTimeSinceSent(cur, 'timeSinceSent', cur.time);
             this.scrollToBottomIf(mw, wasScrolledToBottom);
-            this.updateThreads();
+            this.saveThreads();
         },
         operatorConnectionRequest: async function (thread) {
             this.configTimeSinceSent(thread, 'timeSinceStarted', thread.timeStarted);
@@ -274,7 +330,7 @@ module.exports = {
                 await configMessage(thread.messageHistory[i]);
             }
             this.threads.push(thread);
-            this.updateThreads();
+            this.saveThreads();
         },
         threadUpdate: function (op) {
             let thread = this.threads.find(t => t.threadId == op.threadId)
@@ -288,7 +344,7 @@ module.exports = {
             if(thread.operator){
                 this.configAvatarURL(thread.operator, THREAD_AVATAR_SIZE);
             }
-            this.updateThreads();
+            this.saveThreads();
         }
     },
     methods: {
@@ -305,6 +361,7 @@ module.exports = {
         },
         select: function(thread) {
             this.selectedThread = thread;
+            shared.state.selectedThread = thread;
             setTimeout( () => {
                 let mw = document.getElementById("messageWindow");
                 this.selectedThread.lastScroll = mw.scrollTop;
@@ -312,8 +369,14 @@ module.exports = {
             }, 50);
         },
         archive: function(thread) {
+            this.threadArchive.push(thread);
             this.threads.splice(this.threads.indexOf(thread), 1);
-            shared.state.archive.push(thread);
+            if(thread.threadId == this.selectedThread.threadId){
+                this.selectedThread = null;
+                shared.state.selectedThread = null;
+            }
+            this.saveThreads();
+            this.saveArchive();
         },
         sendMessage: async function() {
             if(this.message.length==0) return;
@@ -339,7 +402,7 @@ module.exports = {
             });
             this.message = ''; //clear the message
             this.scrollToBottomIf(mw, wasScrolledToBottom);
-            this.updateThreads();
+            this.saveThreads();
         },
         newestMessage: function(thread) {
             if(thread.messages.length==0){
@@ -368,7 +431,18 @@ module.exports = {
                 threadId: this.selectedThread.threadId,
                 timeConnected: timeNow
             });
-            this.updateThreads();
+            this.saveThreads();
+        },
+        emitEndConversation: function(){
+            const timeNow = (new Date()).toUTCString();
+            this.selectedThread.timeEnded = timeNow;
+            this.configTimeSinceSent(this.selectedThread, 'timeSinceEnded', timeNow);
+            this.$socket.emit('endThread', {
+                operatorId: this.global.userId,
+                threadId: this.selectedThread.threadId,
+                timeEnded: timeNow
+            });
+            this.saveThreads();
         },
         configAvatarURL: async function(sender, size){
             const key = `${sender.id}${size}`;
@@ -385,12 +459,16 @@ module.exports = {
                 } 
             }, 50, div, condition);
         },
-        updateThreads: function(){
+        saveThreads: function(){
             shared.state.threads = this.threads;
+        },
+        saveArchive: function(){
+            shared.state.archive = this.threadArchive;
         },
         clearThreads: function(){
             shared.state.threads = [];
             this.threads = [];
+            this.selectedThread = null;
         },
         configTimeSinceSent: function(object, key, time){
             object[key] = moment(time).fromNow()
