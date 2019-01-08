@@ -5,7 +5,7 @@
         <sui-grid>
             <sui-grid-row :cols="2" style="padding:0px;margin-top:100px">
                 <!-- THREAD LIST -->
-                <sui-grid-column :width="4" style="padding:0px;height:658px">
+                <sui-grid-column :width="4" style="padding:0px;height:650px">
                     <sui-container
                         v-if="threads.length==0"
                         style="text-align:center;background-color:#ccc;border-right: 1px solid #ccc;height:100%">
@@ -22,11 +22,10 @@
                             v-for="thread in threads"
                             style="padding:3px"
                             :class="{
-                                flashingblue: thread.operator==null, 
-                                bluebackground: selectedThread==thread&&thread.operator!=null,
+                                bluebackground: selectedThread==thread,
                                 greybackground: !thread.user,
                                 darkgreybackground: !thread.user&&selectedThread==thread,
-                                hoverblue: thread.operator&&selectedThread!=thread&&thread.user
+                                hoverblue: selectedThread!=thread&&thread.user
                             }">     
                             <sui-grid :columns="3">
                                 <sui-grid-row>
@@ -46,8 +45,11 @@
                                             style="color:#afafaf;margin-top:4px" 
                                             v-text="newestMessage(thread)" />
                                     </sui-grid-column>
-                                    <sui-grid-column :width="2">
+                                    <sui-grid-column
+                                        :class="{bluebackground:thread.operator==null}"
+                                        :width="2">
                                         <sui-icon
+                                            v-if="thread.timeEnded"
                                             @click="archive(thread)"
                                             style="display:inline"
                                             class="hover-red pull-right"
@@ -207,17 +209,17 @@
                     <div v-if="selectedThread" 
                         style="text-align:center;">
                         <sui-button
-                            v-if="!selectedThread.timeEnded"
-                            color="yellow"
+                            v-if="!selectedThread.timeEnded&&selectedThread.timeConnected"
+                            color="grey"
                             size="large"
                             style="height:28px;width:100%;border-radius:0px;font-size:.85714286rem;padding:3px"
-                            @click="emitEndConversation()">End Conversation</sui-button>
+                            @click="emitEndConversation()">Close Connection</sui-button>
                         <sui-label
-                            v-else
+                            v-if="selectedThread.timeEnded"
                             color="red"
                             size="large"
                             style="width:100%;border-radius:0px;margin:0px">
-                            Conversation ended {{selectedThread.timeSinceEnded}}
+                            Connection closed {{selectedThread.timeSinceEnded}}
                         </sui-label>
                     </div>
                     <!-- /Message Input Box -->
@@ -241,7 +243,7 @@
                                     <sui-button
                                         content="Restore"
                                         color="green"
-                                        @click="threads.push(thread)"/>
+                                        @click="restoreThread(thread)"/>
                                 </sui-list-content>
                             </sui-list-item>
                         </sui-list>
@@ -277,7 +279,6 @@ module.exports = {
         threadArchive: []
     }),
     mounted: async function() {
-        let t = shared.state.threads;
         const updateAvatars = (async function(t){
             await this.configAvatarURL(t.user, THREAD_AVATAR_SIZE);
             this.configTimeSinceSent(t, 'timeSinceStarted', t.timeStarted);
@@ -296,12 +297,13 @@ module.exports = {
                 this.configTimeSinceSent(m, 'timeSinceSent', m.time);
             });
         }).bind(this);
-        for(let i=0; i<t.length; i++){
-            await updateAvatars(t[i]);
+        for(let i=0; i<shared.state.threads.length; i++){
+            await updateAvatars(shared.state.threads[i]);
         }
+        await updateAvatars(shared.state.selectedThread);
         this.selectedThread = shared.state.selectedThread;
         this.threadArchive = shared.state.archive;
-        this.threads = t;
+        this.threads = shared.state.threads;
     },
     sockets: {
         connect: function () {
@@ -322,12 +324,10 @@ module.exports = {
         operatorConnectionRequest: async function (thread) {
             this.configTimeSinceSent(thread, 'timeSinceStarted', thread.timeStarted);
             await this.configAvatarURL(thread.user, THREAD_AVATAR_SIZE);
-            let configMessage = (async function(msg){
+            for(let i=0; i<thread.messageHistory.length; i++){
+                const msg = thread.messageHistory[i];
                 this.configTimeSinceSent(msg, 'timeSinceSent', msg.time)
                 await this.configAvatarURL(msg.sender, MESSAGE_AVATAR_SIZE);
-            }).bind(this);
-            for(let i=0; i<thread.messageHistory.length; i++){
-                await configMessage(thread.messageHistory[i]);
             }
             this.threads.push(thread);
             this.saveThreads();
@@ -477,6 +477,10 @@ module.exports = {
                 TIME_SINCE_SENT_REFRESH_RATE
             );
         },
+        restoreThread: function(thread){
+            this.showingArchiveModal = false;
+            this.threads.push(thread);
+        }
     },
 }       
 </script>
@@ -532,17 +536,6 @@ module.exports = {
     -webkit-animation: flash-green-animation 2s linear 0s infinite; /* Safari 4.0 - 8.0 */
     animation: flash-green-animation 2s linear 0s infinite;
 }
-/* Safari */
-@-webkit-keyframes flash-green-animation {
-    0%   {background-color:#fafafa;}
-    50%  {background-color:#0088CB}
-}
-/* Non-Safari */
-@keyframes flashing-green-animation {
-    0%   {background-color:#fafafa;}
-    50%  {background-color:#0088CB;}
-}
-
 .pull-right {
   float: right;
    margin-right: 0.25em;

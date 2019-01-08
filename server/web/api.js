@@ -224,7 +224,6 @@ class AuthenticationAPIV1 extends APIHandler {
     async onCompleteLogin(req, res) {
         const userId = req.body.id;
         const code = req.body.code;
-
         try {
             await this.server.bot.validateAuthCode(userId, code);
             const token = await genToken(userId);
@@ -341,8 +340,28 @@ class SettingsAPIV1 extends APIHandler {
     }
 
     async onGetUser(req, res){
+        console.log('onGetUser req:');
+        console.log(req.get('userTag'));
         let userId = req.get('userId');
-        const userData = (await this.server.bot.getUsers([userId]))[0];
+        let userData = {};
+        if(userId){
+            userData = (await this.server.bot.getUsers([userId]))[0];
+        }else{
+            const userTag = req.get('userTag');
+            console.log('userTag : ');
+            console.log(userTag);
+            const tag = (userTag && userTag[0] === '@') ? userTag : '@' + userTag;
+            const usersFromTag = await this.server.bot.resolveTags(tag);
+            if (usersFromTag.userids.length === 1 && usersFromTag.warnings.length === 0) {
+                const uid = usersFromTag.userids[0];
+                userData = (await this.server.bot.getUsers([uid]))[0];
+            }else{
+                const error = {info: { tag: ['Not a recognized tag. Please try again!'] } };
+                res.status(400).json(error);
+                return;
+            }
+        }
+        
         res.status(200).json(userData);
     }
 }

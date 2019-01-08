@@ -17,16 +17,31 @@ div.listgap {
     margin-right:0.5em;
     width:80%;
 }
+.groupData{
+    margin:20px 0px 20px 0px !important;
+    padding-top:5%;
+    border:1px solid #ddd;
+    border-radius:5px
+}
 </style>
 
 <template>
     <div class="ui main text container left aligned" style="margin-top: 80px;">
         <sui-grid>
             <sui-grid-row>
+                <sui-button
+                    content="New Group"
+                    color="green"
+                    @click="showingNewGroupModal = true" />
+            </sui-grid-row>
+            <sui-grid-row>
                 <sui-grid-column :width="16">
                     <!-- Group List -->
-                    <sui-grid style="margin-top: 40px;">
-                        <sui-grid-row v-for="group in groups" :key="group.name">
+                    <sui-grid>
+                        <sui-grid-row
+                            class="groupData" 
+                            v-for="group in groups" 
+                            :key="group.name">
                             <sui-grid-column :width="2">
                                 <sui-list-icon 
                                     name="circle" 
@@ -40,8 +55,8 @@ div.listgap {
                                         <sui-grid-column :width="10">
                                             <h5>{{admin.first_name}} {{admin.last_name}}</h5>
                                         </sui-grid-column>
-                                        <sui-grid-column :width="6">
-                                            <sui-dropdown text="Change Group">
+                                        <sui-grid-column :width="6" v-if="group.name=='All'">
+                                            <sui-dropdown text="Add to Group">
                                                 <sui-dropdown-menu>
                                                     <sui-dropdown-item 
                                                         v-for="group in groups" 
@@ -66,12 +81,6 @@ div.listgap {
                     <!-- /Group List -->
 
                 </sui-grid-column>
-            </sui-grid-row>
-            <sui-grid-row>
-                <sui-button
-                    content="New Group"
-                    color="green"
-                    @click="showingNewGroupModal = true" />
             </sui-grid-row>
         </sui-grid>
 
@@ -143,11 +152,6 @@ module.exports = {
             this.saveGroupData();
         },
         addToGroup: function(group, admin) {
-            this.groups.forEach(group => {
-                if(group.users.indexOf(admin)!=-1){
-                    group.users.splice(group.users.indexOf(admin), 1);
-                }
-            });
             this.groups[this.groups.indexOf(group)].users.push(admin);
             this.saveGroupData();
         },

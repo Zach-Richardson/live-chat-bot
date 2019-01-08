@@ -158,6 +158,12 @@ class ForstaBot {
     }
 
     async stepThreadState(threadStatus, msg){
+        if(msg.data.body&&msg.data.body[0].value=='reset'){
+            this.initializeNewThread(msg);
+            this.sendMessage(threadStatus.dist, threadStatus.threadId, 
+                'Re initializing question set...');
+            return;
+        }
         if(threadStatus.onHold){
             this.sendMessage(threadStatus.dist, threadStatus.threadId, 
                 'Waiting for an operator to connect...');
