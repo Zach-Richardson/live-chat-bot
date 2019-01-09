@@ -4,6 +4,13 @@ var state = {
     onboardStatus: undefined,
     passwordSet: undefined,
     myId: undefined,
+    get avatarURLs() {
+        return JSON.parse(localStorage.getItem('avatarURLs')) || {};
+    },
+    set avatarURLs(value) {
+        if (value) localStorage.setItem('avatarURLs', JSON.stringify(value));
+        else localStorage.removeItem('avatarURLs');
+    },
     get selectedThread() {
         return JSON.parse(localStorage.getItem('selectedThread')) || null;
     },

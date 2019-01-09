@@ -5,7 +5,7 @@
         <sui-grid>
             <sui-grid-row :cols="2" style="padding:0px;margin-top:100px">
                 <!-- THREAD LIST -->
-                <sui-grid-column :width="4" style="padding:0px;height:650px">
+                <sui-grid-column :width="4" style="padding:0px;height:658px">
                     <sui-container
                         v-if="threads.length==0"
                         style="text-align:center;background-color:#ccc;border-right: 1px solid #ccc;height:100%">
@@ -22,10 +22,11 @@
                             v-for="thread in threads"
                             style="padding:3px"
                             :class="{
-                                bluebackground: selectedThread==thread,
+                                flashingblue: thread.operator==null, 
+                                bluebackground: selectedThread==thread&&thread.operator!=null,
                                 greybackground: !thread.user,
                                 darkgreybackground: !thread.user&&selectedThread==thread,
-                                hoverblue: selectedThread!=thread&&thread.user
+                                hoverblue: thread.operator&&selectedThread!=thread&&thread.user
                             }">     
                             <sui-grid :columns="3">
                                 <sui-grid-row>
@@ -45,9 +46,7 @@
                                             style="color:#afafaf;margin-top:4px" 
                                             v-text="newestMessage(thread)" />
                                     </sui-grid-column>
-                                    <sui-grid-column
-                                        :class="{bluebackground:thread.operator==null}"
-                                        :width="2">
+                                    <sui-grid-column :width="2">
                                         <sui-icon
                                             v-if="thread.timeEnded"
                                             @click="archive(thread)"
@@ -206,20 +205,20 @@
                             @click="sendMessage()" 
                             class="paper plane outline link icon"></i>
                     </div>
-                    <div v-if="selectedThread" 
+                    <div v-if="selectedThread&&selectedThread.timeConnected" 
                         style="text-align:center;">
                         <sui-button
-                            v-if="!selectedThread.timeEnded&&selectedThread.timeConnected"
+                            v-if="!selectedThread.timeEnded"
                             color="grey"
                             size="large"
                             style="height:28px;width:100%;border-radius:0px;font-size:.85714286rem;padding:3px"
-                            @click="emitEndConversation()">Close Connection</sui-button>
+                            @click="emitEndConversation()">End Conversation</sui-button>
                         <sui-label
-                            v-if="selectedThread.timeEnded"
+                            v-else
                             color="red"
                             size="large"
                             style="width:100%;border-radius:0px;margin:0px">
-                            Connection closed {{selectedThread.timeSinceEnded}}
+                            Conversation ended {{selectedThread.timeSinceEnded}}
                         </sui-label>
                     </div>
                     <!-- /Message Input Box -->
@@ -229,7 +228,7 @@
         </sui-grid>
 
         <div>
-            <sui-modal v-model="showingArchiveModal">
+            <sui-modal v-model="showingArchiveModal" size="small">
                 <sui-modal-header>Thread archive</sui-modal-header>
                 <sui-modal-content>
                     <sui-modal-description>
@@ -238,12 +237,11 @@
                             <sui-list-item 
                                 v-for="thread in global.archive">
                                 <sui-list-content>
-                                    <span v-text="thread.threadId" />
-                                    <span v-text="thread.timeStarted" />
+                                    <span v-text="moment(thread.timeStarted).format('MM/DD/YYYY HH:MM')" />
                                     <sui-button
                                         content="Restore"
                                         color="green"
-                                        @click="restoreThread(thread)"/>
+                                        @click="restoreThread(thread)" />
                                 </sui-list-content>
                             </sui-list-item>
                         </sui-list>
@@ -251,7 +249,7 @@
                 </sui-modal-content>
                 <sui-modal-actions style="padding:10px">
                     <sui-button 
-                        class="red"
+                        class="grey"
                         @click="showingArchiveModal=false"
                         content="Close" />
                 </sui-modal-actions>
@@ -271,21 +269,23 @@ const THREAD_AVATAR_SIZE = '55';
 module.exports = {
     data: () => ({ 
         global: shared.state,
-        selectedThread: [],
+        selectedThread: null,
         message: '',
         avatarURLs: {},
         threads: [],
         showingArchiveModal: false,
-        threadArchive: []
+        threadArchive: [],
+        moment
     }),
     mounted: async function() {
+        let t = shared.state.threads;
         const updateAvatars = (async function(t){
             await this.configAvatarURL(t.user, THREAD_AVATAR_SIZE);
             this.configTimeSinceSent(t, 'timeSinceStarted', t.timeStarted);
-            if(t.timeSinceConnected){
+            if(t.timeConnected){
                 this.configTimeSinceSent(t, 'timeSinceConnected', t.timeConnected);
             }
-            if(t.timeSinceEnded){
+            if(t.timeEnded){
                 this.configTimeSinceSent(t, 'timeSinceEnded', t.timeEnded);
             }
             t.messages.forEach(m => {
@@ -297,13 +297,16 @@ module.exports = {
                 this.configTimeSinceSent(m, 'timeSinceSent', m.time);
             });
         }).bind(this);
-        for(let i=0; i<shared.state.threads.length; i++){
-            await updateAvatars(shared.state.threads[i]);
+        for(let i=0; i<t.length; i++){
+            await updateAvatars(t[i]);
         }
-        await updateAvatars(shared.state.selectedThread);
         this.selectedThread = shared.state.selectedThread;
         this.threadArchive = shared.state.archive;
-        this.threads = shared.state.threads;
+        this.threads = t;
+        console.log('archive:');
+        console.log(this.threadArchive);
+        console.log('threads : ');
+        console.log(this.threads);
     },
     sockets: {
         connect: function () {
@@ -324,16 +327,18 @@ module.exports = {
         operatorConnectionRequest: async function (thread) {
             this.configTimeSinceSent(thread, 'timeSinceStarted', thread.timeStarted);
             await this.configAvatarURL(thread.user, THREAD_AVATAR_SIZE);
-            for(let i=0; i<thread.messageHistory.length; i++){
-                const msg = thread.messageHistory[i];
+            let configMessage = (async function(msg){
                 this.configTimeSinceSent(msg, 'timeSinceSent', msg.time)
                 await this.configAvatarURL(msg.sender, MESSAGE_AVATAR_SIZE);
+            }).bind(this);
+            for(let i=0; i<thread.messageHistory.length; i++){
+                await configMessage(thread.messageHistory[i]);
             }
             this.threads.push(thread);
             this.saveThreads();
         },
         threadUpdate: function (op) {
-            let thread = this.threads.find(t => t.threadId == op.threadId)
+            let thread = this.threads.find(t => t.threadId == op.threadId);
             for(let key in op){
                 if(thread.hasOwnProperty(key)) thread[key] = op[key];
                 else{
@@ -371,10 +376,16 @@ module.exports = {
         archive: function(thread) {
             this.threadArchive.push(thread);
             this.threads.splice(this.threads.indexOf(thread), 1);
-            if(thread.threadId == this.selectedThread.threadId){
+            if(this.selectedThread && thread.threadId == this.selectedThread.threadId){
                 this.selectedThread = null;
                 shared.state.selectedThread = null;
             }
+            this.saveThreads();
+            this.saveArchive();
+        },
+        restoreThread: function(thread) {
+            this.threadArchive.splice(this.threadArchive.indexOf(thread), 1);
+            this.threads.push(thread);
             this.saveThreads();
             this.saveArchive();
         },
@@ -424,6 +435,7 @@ module.exports = {
         },
         emitOperatorConnectResponse: function(){
             const timeNow = (new Date()).toUTCString();
+            this.threads.find(t => t.threadId == this.selectedThread.threadId).timeConnected = timeNow;
             this.selectedThread.timeConnected = timeNow;
             this.configTimeSinceSent(this.selectedThread, 'timeSinceConnected', timeNow);
             this.$socket.emit('operatorConnectResponse', {
@@ -477,10 +489,6 @@ module.exports = {
                 TIME_SINCE_SENT_REFRESH_RATE
             );
         },
-        restoreThread: function(thread){
-            this.showingArchiveModal = false;
-            this.threads.push(thread);
-        }
     },
 }       
 </script>
@@ -536,6 +544,17 @@ module.exports = {
     -webkit-animation: flash-green-animation 2s linear 0s infinite; /* Safari 4.0 - 8.0 */
     animation: flash-green-animation 2s linear 0s infinite;
 }
+/* Safari */
+@-webkit-keyframes flash-green-animation {
+    0%   {background-color:#fafafa;}
+    50%  {background-color:#0088CB}
+}
+/* Non-Safari */
+@keyframes flashing-green-animation {
+    0%   {background-color:#fafafa;}
+    50%  {background-color:#0088CB;}
+}
+
 .pull-right {
   float: right;
    margin-right: 0.25em;

@@ -340,16 +340,12 @@ class SettingsAPIV1 extends APIHandler {
     }
 
     async onGetUser(req, res){
-        console.log('onGetUser req:');
-        console.log(req.get('userTag'));
         let userId = req.get('userId');
         let userData = {};
         if(userId){
             userData = (await this.server.bot.getUsers([userId]))[0];
         }else{
             const userTag = req.get('userTag');
-            console.log('userTag : ');
-            console.log(userTag);
             const tag = (userTag && userTag[0] === '@') ? userTag : '@' + userTag;
             const usersFromTag = await this.server.bot.resolveTags(tag);
             if (usersFromTag.userids.length === 1 && usersFromTag.warnings.length === 0) {

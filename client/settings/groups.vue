@@ -30,6 +30,7 @@ div.listgap {
         <sui-grid>
             <sui-grid-row>
                 <sui-button
+                    style="width:100%"
                     content="New Group"
                     color="green"
                     @click="showingNewGroupModal = true" />

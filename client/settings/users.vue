@@ -30,7 +30,8 @@ div.listgap {
         <sui-grid>
             <sui-grid-row>
                 <sui-button
-                    content="New User"
+                    style="width:100%"
+                    content="Add User"
                     color="green"
                     @click="showingNewUserModal = true" />
             </sui-grid-row>
@@ -39,7 +40,7 @@ div.listgap {
                     <!-- Admin List -->
                     <sui-grid>
                         <sui-grid-row
-                            style="margin-top:10px"
+                            style="margin-top:5px"
                             v-for="admin in admins" 
                             :key="admin.id"
                             class="userData">
@@ -65,11 +66,10 @@ div.listgap {
 
                     <!-- New User Modal -->
                     <div>
-                        <sui-modal v-model="showingNewUserModal" style="text-align:center">
-                            <sui-modal-header>New User</sui-modal-header>
-                            <sui-modal-content>
+                        <sui-modal v-model="showingNewUserModal" size="tiny">
+                            <sui-modal-header style="text-align:center">New User</sui-modal-header>
+                            <sui-modal-content style="text-align:center">
                                 <sui-modal-description>
-                                    <sui-header>Search for a user by tag:</sui-header>
                                     <!-- Search Input -->
                                     <span class="flexbox ui left icon input">
                                         <sui-icon
@@ -77,7 +77,6 @@ div.listgap {
                                         <input 
                                             @keyup.enter="searchUser()"
                                             v-model="newUserTag"
-                                            style="border-radius:0px"
                                             type="text" 
                                             placeholder="Enter a user tag..." />
                                     </span>
@@ -86,8 +85,7 @@ div.listgap {
                                     <!-- New User Info -->
                                     <div class="ui card" v-if="newUser">
                                         <div class="image">
-                                            <object type="image/svg+xml" :data="newUserAvatarURL" />
-                                            <!-- <img :src="'https://www.gravatar.com/avatar/'+newUser.gravatar_hash" /> -->
+                                            <object type="image/svg+xml" v-if="newUserAvatarURL" :data="newUserAvatarURL" />
                                         </div>
                                         <div class="content">
                                             <a class="header">{{newUser.first_name}} {{newUser.last_name}}</a>
@@ -95,17 +93,11 @@ div.listgap {
                                             <span class="date">{{newUser.email}}</span>
                                             </div>
                                         </div>
-                                        <div class="extra content">
-                                            <a>
-                                            <i class="user icon"></i>
-                                            22 Friends
-                                            </a>
-                                        </div>
                                     </div>
                                     <!-- /New User Info -->
                                     <sui-button
                                         v-if="newUser" 
-                                        class="green" 
+                                        class="grey" 
                                         @click="addUser()"
                                         content="Add" />
                                 </sui-modal-description>
@@ -135,7 +127,7 @@ module.exports = {
         admins: [],
         newUser: null,
         newUserTag: '',
-        newUserAvatarURL: '',
+        newUserAvatarURL: null,
         tagMessage: '',
         global: shared.state,
         interval: null,
@@ -147,8 +139,6 @@ module.exports = {
             util.fetch.call(this, '/api/auth/admins/v1')
             .then(result => {
                 if (result.ok) {
-                    console.log('admins : ');
-                    console.log(result.theJson.administrators);
                     this.admins = result.theJson.administrators;
                 }else{
                     console.log('error retrieving admin data from /api/auth/admins/v1');
@@ -163,7 +153,6 @@ module.exports = {
             .then(res => {
                 if(res.ok){
                     this.admins = res.theJson;
-                    this.newUserTag = '';
                     this.tagMessage = '';
                 }else{
                     this.tagMessage = util.mergeErrors(res.theJson);
@@ -171,41 +160,32 @@ module.exports = {
             })
             .catch(err => console.log(err));
         },
-        configAvatarURL: async function(sender, size){
-            this.newUserAvatarURL = await util.getAvatarURL(sender, size);
+        configAvatarURL: async function(user, size){
+            const userData = {
+                id: user.id,
+                name: `${user.first_name} ${user.last_name}`,
+                gravatarHash: user.gravatar_hash
+            }
+            this.newUserAvatarURL = await util.getAvatarURL(userData, size);
         },
         searchUser: function() {
-            this.newUser = null;
-            this.newUserTag = '';
             const op = { method: 'get', headers: { userTag:this.newUserTag }};
-            console.log(op);
             util.fetch.call(this, 'api/settings/user', op)
             .then(res => {
                 if(res.ok){
                     this.newUser = res.theJson;
                     this.configAvatarURL(res.theJson, '50');
                 }else{
-                    this.tagMessage = util.mergeErrors(res.theJson);
+                    this.tagMessage = 'User not found.';
                 }
             });
         },
         addUser: function() {
             let options = { method: 'post', body: { op: 'add', tag: this.newUserTag }};
             util.fetch.call(this, '/api/auth/admins/v1', options)
-            .then(res => {
-                if(res.ok) {
-                    console.log('res.theJson : ');
-                    console.log(res.theJson);
-                    this.newUser = res.theJson;
-                    this.newUserTag = '';
-                    this.tagMessage = 'User Found!';
-                }else{
-                    this.tagMessage = util.mergeErrors(res.theJson);
-                }
-            })
             .catch(err => console.log(err));
-            this.admins.push(newUser);
-            this.groups.find(group => group.name=='All').users.push(newUser);
+            this.admins.push(this.newUser);
+            this.groups.find(group => group.name=='All').users.push(this.newUser);
             this.saveGroupData();
             this.newUser = null;
             this.newUserTag = '';
@@ -213,10 +193,14 @@ module.exports = {
         },
         loadGroups: async function(admin) {
             this.groups = (await util.fetch.call(this, '/api/settings/groups/')).theJson;
+            console.log('this.groups onload : ');
+            console.log(this.groups);
         },
         saveGroupData: function() {
             const options = {method:'post', body:{ groups:this.groups }};
             util.fetch.call(this, 'api/settings/groups', options);
+            console.log('this.groups onsave : ');
+            console.log(this.groups)
         }
     },
     mounted: async function() {

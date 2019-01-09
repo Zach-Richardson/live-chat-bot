@@ -60,11 +60,6 @@ div [class*="pull right"] {
 
                         <sui-grid-row style="padding:0px">
                             <sui-grid-column>
-                                <sui-label
-                                    pointing="right"
-                                    color="blue"
-                                    size="large"
-                                    style="vertical-align:middle;margin-left:10px;">Prompt</sui-label>
                                 <sui-input
                                     v-model="question.prompt"
                                     :value="question.prompt"
@@ -72,12 +67,6 @@ div [class*="pull right"] {
                                     class="large"
                                     @input="checkForChanges()"/>
                                 <br />
-                                <sui-label
-                                    pointing="right"
-                                    color="blue"
-                                    size="large"
-                                    style="vertical-align:middle;
-                                        margin-left:20px;">Type</sui-label>
                                 <sui-dropdown
                                     selection
                                     placeholder="Question Type"
@@ -92,9 +81,11 @@ div [class*="pull right"] {
                         <sui-grid-row v-if="question.type=='Multiple Choice'">
                             <sui-grid-column>
                                 <form class="ui form" v-for="response in question.responses">
-                                    <div v-if="question.responses.indexOf(response)!=0" style="margin-top:20px">
+                                    <div
+                                        v-if="question.responses.indexOf(response)!=0" 
+                                        style="margin-top:20px">
                                     </div>
-                                    <div class="field">
+                                    <div class="field" style="padding:9px" :style="getResponseColorForBackground(response)">
                                         <label>Response {{question.responses.indexOf(response)+1}}</label>
                                         <sui-grid>
                                             <sui-grid-row :columns="1">
@@ -104,7 +95,12 @@ div [class*="pull right"] {
                                                         class="flexbox"
                                                         v-model="response.text"
                                                         :value="response.text"
-                                                        @input="checkForChanges()"/>     
+                                                        @input="checkForChanges()"/>
+                                                    <sui-button
+                                                        color="grey"
+                                                        icon="trash"
+                                                        style="vertical-align:middle;margin-left:10px"
+                                                        @click="deleteResponse(question, response)" />  
                                                 </sui-grid-column>
                                             </sui-grid-row>
                                             <sui-grid-row style="padding-top:5px">
@@ -135,17 +131,12 @@ div [class*="pull right"] {
                                                             @input="checkForChanges()"/>
                                                     </span>                                
                                                     <sui-input
-                                                        style="width:50px"
+                                                        style="width:50px;margin-left:10px"
                                                         type="color"
                                                         class="color-picker"
                                                         :value="response.color"
                                                         v-model="response.color"
                                                         @input="checkForChanges()"/>  
-                                                    <sui-button 
-                                                        color="red"
-                                                        icon="trash alternate outline"
-                                                        style="vertical-align:middle"
-                                                        @click="deleteResponse(question, response)" />
                                                     <p v-if="response.invalidTag" style="color: #ff0000;">
                                                         The group "{{response.actionOption}}" does not exist.
                                                     </p>
@@ -155,7 +146,7 @@ div [class*="pull right"] {
                                     </div>
                                 </form>
                             <sui-button
-                                style="margin-top:25px"
+                                style="margin-top:25px;float:center"
                                 color="grey"
                                 size="small"
                                 content="Add Response"
@@ -291,7 +282,10 @@ module.exports = {
         }
     },
     methods: {
-        checkForChanges(){
+        getResponseColorForBackground: function(response){
+            return { 'background-color':response.color };
+        },
+        checkForChanges: function(){
             if(this.changesMade) return;
             if(JSON.stringify(this.questions) !== this.questionsOriginal){
                 this.changesMade = true;
