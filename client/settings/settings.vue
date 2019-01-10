@@ -37,8 +37,8 @@ a:hover{
                 <sui-grid-column :width="4">
                     <sui-list 
                         divided 
-                        relaxed 
-                        size="huge" style="padding:7px; margin-top:50px">
+                        relaxed
+                        size="huge" style="padding:7px;position:fixed;width:15%;display:block">
                         <sui-list-item @click="selectPage('questions')" @mouseenter="hovering='questions'" @mouseleave="hovering=''">
                             <sui-list-icon 
                                 name="comments" 
@@ -88,7 +88,7 @@ a:hover{
                     </sui-list>
                 </sui-grid-column>
                 <sui-grid-column :width="12">
-                    <questions v-if="selectedPage=='questions'" />
+                    <questions v-if="selectedPage=='questions'"/>
                     <users v-if="selectedPage=='users'" />
                     <groups v-if="selectedPage=='groups'" />
                 </sui-grid-column>

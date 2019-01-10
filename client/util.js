@@ -72,10 +72,14 @@ const themeColors = {
     black: '#3a3b3d'
 };
 
-function textAvatarURL(text, size) {
+function getThemeColorFromHash(text){
     const intHash = parseInt(md5(text).substr(0, 10), 16);
     const label = Object.keys(themeColors)[intHash % Object.keys(themeColors).length];
-    const bgColor = themeColors[label];
+    return themeColors[label];
+}
+
+function textAvatarURL(text, size) {
+    const bgColor = getThemeColorFromHash(text);
     const pixelSize = Number(size);
     const svg = [
         `<svg xmlns="http://www.w3.org/2000/svg" width="${pixelSize}" height="${pixelSize}">`,
@@ -105,7 +109,7 @@ async function getAvatarURL(userData, size){
     if(md5(gravatar)==md5(_defaultGravatar)){
         const userFL = userData.name.split(' ');
         const initials = userFL[0].charAt(0).toUpperCase() + userFL[1].charAt(0).toUpperCase();
-        return await textAvatarURL(initials, size);
+        return textAvatarURL(initials, size);
     }else{
         return gravatarURL + `?s=${size}`;
     }
@@ -116,5 +120,6 @@ module.exports = {
     mergeErrors,
     RequestError,
     fetch: _fetch,
-    getAvatarURL
+    getAvatarURL,
+    getThemeColorFromHash
 };

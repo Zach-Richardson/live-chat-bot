@@ -76,6 +76,11 @@ class ForstaBot {
                     },
                 }
             });
+            this.threadStatus[threadId].group.users.forEach(user => {
+                if(this.sockets[user.id]&&user.id!=operatorUser.id){
+                    this.sockets[user.id].emit('removeThread', threadId);
+                }
+            });
             
         }).bind(this);
         let sendMessage = (async function (threadId, text){
@@ -140,6 +145,7 @@ class ForstaBot {
             messageHistory: [],
             messages: [],
             operator: null,
+            group: null,
             onHold: false,
             bot: {
                 name: this.fqName(botUser),
@@ -212,6 +218,7 @@ class ForstaBot {
             let messageBody = JSON.parse(outgoingMessage.message.dataMessage.body)[0];
             await this.saveToThreadMessageHistory(messageBody);
             let group = (await this.getGroups()).find(group => group.name == actionOption);
+            threadStatus.group = group;
             group.users.forEach(user => {
                 if(this.sockets[user.id]){
                     this.sockets[user.id].emit('operatorConnectionRequest', this.threadStatus[msg.threadId]);

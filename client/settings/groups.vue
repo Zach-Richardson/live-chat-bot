@@ -21,20 +21,18 @@ div.listgap {
     margin:20px 0px 20px 0px !important;
     padding-top:5%;
     border:1px solid #ddd;
-    border-radius:5px
+    border-radius:5px;
+}
+.groupUserList{
+    border-radius:2px;
+    border:1px solid #ddd;
+    border-radius:5px;
 }
 </style>
 
 <template>
-    <div class="ui main text container left aligned" style="margin-top: 80px;">
+    <div class="ui main text container left aligned">
         <sui-grid>
-            <sui-grid-row>
-                <sui-button
-                    style="width:100%"
-                    content="New Group"
-                    color="green"
-                    @click="showingNewGroupModal = true" />
-            </sui-grid-row>
             <sui-grid-row>
                 <sui-grid-column :width="16">
                     <!-- Group List -->
@@ -45,27 +43,33 @@ div.listgap {
                             :key="group.name">
                             <sui-grid-column :width="2">
                                 <sui-list-icon 
-                                    name="circle" 
-                                    size="large" 
-                                    vertical-align="middle"/>
+                                    name="users"
+                                    size="big"/>
                             </sui-grid-column>
                             <sui-grid-column :width="12">
-                                <h3 v-text="group.name"></h3>
-                                <sui-grid style="margin:10px">
-                                    <sui-grid-row v-for="admin in group.users" :key="admin.id">
+                                <h3 v-text="group.name" style="margin-bottom:20px"></h3>
+                                <sui-grid divided="vertically" style="margin:10px;padding:5px" class="groupUserList">
+                                    <sui-grid-row v-for="admin in group.users" :key="admin.id" style="padding:0px">
                                         <sui-grid-column :width="10">
-                                            <h5>{{admin.first_name}} {{admin.last_name}}</h5>
+                                            <div>{{admin.first_name}} {{admin.last_name}}</div>
                                         </sui-grid-column>
                                         <sui-grid-column :width="6" v-if="group.name=='All'">
                                             <sui-dropdown text="Add to Group">
                                                 <sui-dropdown-menu>
                                                     <sui-dropdown-item 
-                                                        v-for="group in groups" 
+                                                        v-for="group in groups.filter(g=>g.name!='All')" 
                                                         :key="group.name"
                                                         v-text="group.name"
                                                         @click="addToGroup(group, admin)"></sui-dropdown-item>
                                                 </sui-dropdown-menu>
                                             </sui-dropdown>
+                                        </sui-grid-column>
+                                        <sui-grid-column :width="6" v-else>
+                                            <sui-button
+                                                class="pull-right"
+                                                icon="trash"
+                                                color="grey"
+                                                @click="removeFromGroup(group, admin)" />
                                         </sui-grid-column>
                                     </sui-grid-row>
                                 </sui-grid>
@@ -78,6 +82,12 @@ div.listgap {
                                     @click="deleteGroup(group)"/>
                             </sui-grid-column>
                         </sui-grid-row>
+                        <sui-grid-row>
+                            <sui-button
+                                content="New Group"
+                                color="green"
+                                @click="showingNewGroupModal = true" />
+                        </sui-grid-row>
                     </sui-grid>
                     <!-- /Group List -->
 
@@ -87,16 +97,25 @@ div.listgap {
 
         <!-- New Group Modal -->
         <div>
-            <sui-modal v-model="showingNewGroupModal">
-                <sui-modal-header>New Group</sui-modal-header>
+            <sui-modal v-model="showingNewGroupModal" size="tiny">
+                <sui-modal-header style="text-align:center">New Group
+                    <sui-icon
+                        class="pull-right"
+                        name="window close"
+                        @click="showingNewGroupModal=false" />
+                </sui-modal-header>
                 <sui-modal-content>
                     <sui-modal-description>
-                        <sui-header>Enter a name for the new group:</sui-header>
-                        <sui-input v-model="newGroupName" @keyup.enter="createNewGroup()"/>
+                        <sui-input
+                            style="width:100%"
+                            placeholder="Enter a name for the group"
+                            v-model="newGroupName" 
+                            @keyup.enter="createNewGroup()"/>
                     </sui-modal-description>
                 </sui-modal-content>
                 <sui-modal-actions style="padding:10px;text-align:center">
-                    <sui-button 
+                    <sui-button
+                        v-if="newGroupName!=''" 
                         class="green" 
                         @click="createNewGroup()"
                         content="Create" />
@@ -127,7 +146,6 @@ module.exports = {
             util.fetch.call(this, '/api/auth/admins/v1')
             .then(result => {
                 if (result.ok) {
-                    console.log(result.theJson.administrators);
                     this.admins = result.theJson.administrators;
                 }else{
                     console.log('error retrieving admin data from /api/auth/admins/v1');
@@ -153,11 +171,14 @@ module.exports = {
             this.saveGroupData();
         },
         addToGroup: function(group, admin) {
-            this.groups[this.groups.indexOf(group)].users.push(admin);
-            this.saveGroupData();
+            if(group.users.find(a => a.id==admin.id)==null){
+                this.groups[this.groups.indexOf(group)].users.push(admin);
+                this.saveGroupData();
+            }
         },
-        getGroupUsers: function(groupKey) {
-            return this.groups[groupKey];
+        removeFromGroup: function(group, admin) {
+            group.users.splice(group.users.indexOf(admin), 1);
+            this.saveGroupData();
         },
         createNewGroup: function() {
             this.groups.push({name: this.newGroupName, users: []});

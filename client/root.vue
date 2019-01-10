@@ -1,7 +1,7 @@
 <template>
     <div style="height:100% !important">
         <top-menu v-if="global.apiToken&&global.onboardStatus" />
-        <router-view />
+        <router-view style="margin-top:75px;height:100%;"/>
     </div>
 </template>
 

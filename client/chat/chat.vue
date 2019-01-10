@@ -1,32 +1,29 @@
 <template lang="html">
     <div class="ui container left aligned">
-        <sui-button size="large" content="Clear threads" @click="clearThreads()"/>
-        <sui-button size="large" content="Archive" @click="showingArchiveModal=true"/>
-        <sui-grid>
-            <sui-grid-row :cols="2" style="padding:0px;margin-top:100px">
+        <sui-grid class="shadow" style="margin-top:100px">
+            <sui-grid-row :cols="2" style="padding:0px;">
                 <!-- THREAD LIST -->
-                <sui-grid-column :width="4" style="padding:0px;height:658px">
+                <sui-grid-column :width="4" style="padding:0px;height:612px;">
                     <sui-container
                         v-if="threads.length==0"
-                        style="text-align:center;background-color:#ccc;border-right: 1px solid #ccc;height:100%">
+                        class="threadListPlaceholder">
                         <sui-label
                             color="grey"
                             size="large"
-                            style="margin-top:50%">0 active threads</sui-label>
+                            style="margin-top:200px">0 Active Threads</sui-label>
                     </sui-container>
                     <sui-list
                         v-else
-                        divided relaxed 
-                        style="overflow-x:hidden;overflow-y:scroll;height:100%">
+                        divided relaxed
+                        style="overflow-x:hidden;overflow-y:scroll;height:100%;margin:0px">
                         <sui-list-item
                             v-for="thread in threads"
-                            style="padding:3px"
+                            style="padding:5px"
                             :class="{
-                                flashingblue: thread.operator==null, 
-                                bluebackground: selectedThread==thread&&thread.operator!=null,
+                                bluebackground: selectedThread==thread,
                                 greybackground: !thread.user,
                                 darkgreybackground: !thread.user&&selectedThread==thread,
-                                hoverblue: thread.operator&&selectedThread!=thread&&thread.user
+                                hoverblue: selectedThread!=thread
                             }">     
                             <sui-grid :columns="3">
                                 <sui-grid-row>
@@ -46,7 +43,7 @@
                                             style="color:#afafaf;margin-top:4px" 
                                             v-text="newestMessage(thread)" />
                                     </sui-grid-column>
-                                    <sui-grid-column :width="2">
+                                    <sui-grid-column :width="2" :class="{bluebackground:thread.operator==null}">
                                         <sui-icon
                                             v-if="thread.timeEnded"
                                             @click="archive(thread)"
@@ -58,67 +55,68 @@
                             </sui-grid>                       
                         </sui-list-item>
                     </sui-list>
-
+                    <sui-button
+                        icon="archive"
+                        style="width:100%;border-radius:0px;margin:0px;height:38px;padding-top:11px;" 
+                        size="large" 
+                        content="Show Archived" 
+                        @click="showingArchiveModal=true"/>
                 </sui-grid-column>
                 <!-- /THREAD LIST -->
 
                 <!-- MESSAGE WINDOW -->
-                <sui-grid-column :width="12" style="padding-left:0px">
+                <sui-grid-column :width="12" style="padding:0px">
                     <sui-container
                         v-if="!selectedThread||threads.length==0"
-                        style="text-align:center;height:612px;background-color:#ccc">
+                        style="text-align:center;background-color:#ccc;height:612px">
                         <sui-label
                             v-if="threads.length!=0"
                             color="grey"
                             size="large"
-                            style="margin-top:50%">Thread not selected!</sui-label>
+                            style="margin-top:200px">Thread not selected!</sui-label>
                     </sui-container>
                     <sui-container
                         id="messageWindow" 
                         v-else
-                        style="overflow-x:hidden; overflow-y: scroll;height:612px;">
-                        <sui-list relaxed style="background-color:#e8e8e8;margin-top:0px">
-                            <!-- Message History -->
-                            <sui-list-item v-for="message in selectedThread.messageHistory">
-                                <sui-list-content
-                                    style="text-align:center;padding:9px">
-                                </sui-list-content>
-                                <sui-grid>
-                                    <sui-grid-row
-                                        :columns="3">
-                                        <sui-grid-column :width="1"></sui-grid-column>
-                                        <sui-grid-column :width="1" style="padding:0px">
-                                            <object type="image/svg+xml" 
-                                                :data="message.sender.avatarURL" />
-                                        </sui-grid-column>
-                                        <sui-grid-column :class="messageWidthRules(message)">
-                                            <!-- Message Bubble -->
-                                            <div style="padding:11px;word-wrap:break-word" class="ui grey segment">
-                                                <a
-                                                    class="message-bubble-link"
-                                                    v-text="message.sender.name" />
-                                                <span
-                                                    style="font-size:0.8em;color:#777;margin-left:4px">
-                                                    {{message.timeSinceSent}}   
-                                                </span>
-                                                <div 
-                                                    style="margin-bottom:3px;margin-top:6px"
-                                                    v-text="message.text" ></div>
-                                                <div v-if="message.actions" style="margin-top:7px">
-                                                    <sui-button
-                                                        v-for="action in message.actions"
-                                                        :style="{'background-color':action.color}"
-                                                        style="text-align:left;width:100%">
-                                                        {{action.title}}
-                                                    </sui-button>
-                                                </div>
-                                            </div>
-                                            <!-- /Message Bubble -->
-                                        </sui-grid-column>
-                                    </sui-grid-row>
-                                </sui-grid> 
-                            </sui-list-item>
-                        </sui-list>
+                        :class="{'tall':!selectedThread.timeConneceted,'short':selectedThread.timeConnected}"
+                        style="overflow-x:hidden; overflow-y: scroll;">
+
+                        <sui-grid style="background-color:#e8e8e8;margin-top:0px;padding-bottom:20px">
+                            <sui-grid-row v-for="message in selectedThread.messageHistory" :columns="3">
+                                <sui-grid-column :width="1"></sui-grid-column>
+                                <sui-grid-column style="width:50px !important;padding:0px;text-align:center">
+                                    <object type="image/svg+xml" 
+                                        :data="message.sender.avatarURL" />
+                                </sui-grid-column>
+                                <sui-grid-column style="width:auto !important;max-width:800px;word-wrap:break-word;whitespace:nowrap;">
+                                    <!-- Message Bubble -->
+                                    <div 
+                                        :style="getSegmentColor(message.sender)" 
+                                        style="padding:11px;word-wrap:break-word" 
+                                        class="ui grey segment">
+                                        <a
+                                            class="message-bubble-link"
+                                            v-text="message.sender.name" />
+                                        <span
+                                            style="font-size:0.8em;color:#777;margin-left:4px">
+                                            {{message.timeSinceSent}}   
+                                        </span>
+                                        <div 
+                                            style="margin-bottom:3px;margin-top:6px"
+                                            v-text="message.text" ></div>
+                                        <div v-if="message.actions" style="margin-top:7px">
+                                            <sui-button
+                                                v-for="action in message.actions"
+                                                :style="{'background-color':action.color}"
+                                                style="text-align:left;width:100%">
+                                                {{action.title}}
+                                            </sui-button>
+                                        </div>
+                                    </div>
+                                    <!-- /Message Bubble -->
+                                </sui-grid-column>
+                            </sui-grid-row>
+                        </sui-grid> 
                         <!-- /Message History -->
                         <!-- Connect Button -->
                         <div v-if="selectedThread" 
@@ -143,54 +141,64 @@
                         </div>
                         <!-- /Connect Button -->
                         <!-- Live Messages -->
-                        <sui-list relaxed>
-                            <sui-list-item v-for="message in selectedThread.messages">
-                                <sui-list-content
-                                    style="text-align:center;padding:9px">
-                                </sui-list-content>
-                                <sui-grid>
-                                    <sui-grid-row
-                                        :columns="3">
-                                        <sui-grid-column :width="1"></sui-grid-column>
-                                        <sui-grid-column :width="1" style="padding:0px">
-                                            <object type="image/svg+xml" 
-                                                :data="message.sender.avatarURL" />
-                                        </sui-grid-column>
-                                        <sui-grid-column :class="messageWidthRules(message)">
-                                            <!-- Message Bubble -->
-                                            <div style="padding:11px;word-wrap:break-word" class="ui red segment">
-                                                <a
-                                                    class="message-bubble-link"
-                                                    v-text="message.sender.name" />
-                                                <span
-                                                    style="font-size:0.8em;color:#777;margin-left:4px">
-                                                    {{message.timeSinceSent}}  
-                                                </span>
-                                                <div  
-                                                    style="margin-bottom:3px;margin-top:6px"
-                                                    v-text="message.text"></div >
-                                                <div v-if="message.actions!=null" style="margin-top:7px">
-                                                    <sui-button
-                                                        v-for="action in message.actions"
-                                                        :style="{color:action.color}"
-                                                        style="text-align:left;width:100%">
-                                                        {{action.title}}
-                                                    </sui-button>
-                                                </div>
-                                            </div>
-                                            <!-- /Message Bubble -->
-                                        </sui-grid-column>
-                                    </sui-grid-row>
-                                </sui-grid> 
-                            </sui-list-item>
-                        </sui-list>
+                        <sui-grid style="margin-top:20px">
+                            <sui-grid-row v-for="message in selectedThread.messages" :columns="3">
+                                <sui-grid-column :width="1"></sui-grid-column>
+                                <sui-grid-column style="width:50px !important;padding:0px;text-align:center">
+                                    <object type="image/svg+xml" 
+                                        :data="message.sender.avatarURL" />
+                                </sui-grid-column>
+                                <sui-grid-column style="width:auto !important;max-width:600px;word-wrap:break-word;whitespace:nowrap;">
+                                    <!-- Message Bubble -->
+                                    <div
+                                        :style="getSegmentColor(message.sender)" 
+                                        style="padding:11px;word-wrap:break-word" 
+                                        class="ui segment">
+                                        <a
+                                            class="message-bubble-link"
+                                            v-text="message.sender.name" />
+                                        <span
+                                            style="font-size:0.8em;color:#777;margin-left:4px">
+                                            {{message.timeSinceSent}}   
+                                        </span>
+                                        <div 
+                                            style="margin-bottom:3px;margin-top:6px"
+                                            v-text="message.text" ></div>
+                                        <div v-if="message.actions" style="margin-top:7px">
+                                            <sui-button
+                                                v-for="action in message.actions"
+                                                :style="{'background-color':action.color}"
+                                                style="text-align:left;width:100%">
+                                                {{action.title}}
+                                            </sui-button>
+                                        </div>
+                                    </div>
+                                    <!-- /Message Bubble -->
+                                </sui-grid-column>
+                            </sui-grid-row>
+                        </sui-grid>
                     </sui-container>
                     <!-- /Live Messages -->
                     <!-- Message Input Box -->
+                    <div v-if="selectedThread&&selectedThread.timeConnected" 
+                        style="text-align:center;">
+                        <sui-button
+                            v-if="!selectedThread.timeEnded"
+                            color="grey"
+                            size="large"
+                            style="height:27px;width:100%;border-radius:0px;font-size:.85714286rem;padding:3px"
+                            @click="emitEndConversation()">End Conversation</sui-button>
+                        <sui-label
+                            v-else
+                            color="red"
+                            size="large"
+                            style="width:100%;border-radius:0px;margin:0px">
+                            Conversation ended {{selectedThread.timeSinceEnded}}
+                        </sui-label>
+                    </div>
                     <div
                         :class="{'disabled':!selectedThread||selectedThread.timeEnded}" 
-                        class="flexbox ui icon input" 
-                        v-if="selectedThread&&!selectedThread.timeEnded">
+                        class="flexbox ui icon input">
                         <input 
                             @keyup.enter="sendMessage()" 
                             style="border-radius:0px"
@@ -205,22 +213,6 @@
                             @click="sendMessage()" 
                             class="paper plane outline link icon"></i>
                     </div>
-                    <div v-if="selectedThread&&selectedThread.timeConnected" 
-                        style="text-align:center;">
-                        <sui-button
-                            v-if="!selectedThread.timeEnded"
-                            color="grey"
-                            size="large"
-                            style="height:28px;width:100%;border-radius:0px;font-size:.85714286rem;padding:3px"
-                            @click="emitEndConversation()">End Conversation</sui-button>
-                        <sui-label
-                            v-else
-                            color="red"
-                            size="large"
-                            style="width:100%;border-radius:0px;margin:0px">
-                            Conversation ended {{selectedThread.timeSinceEnded}}
-                        </sui-label>
-                    </div>
                     <!-- /Message Input Box -->
                 </sui-grid-column>
                 <!-- /MESSAGE WINDOW -->
@@ -229,18 +221,31 @@
 
         <div>
             <sui-modal v-model="showingArchiveModal" size="small">
-                <sui-modal-header>Thread archive</sui-modal-header>
+                <sui-modal-header style="text-align:center">
+                    <sui-icon 
+                        size="large" 
+                        name="archive" />Archived Threads
+                    </sui-modal-header>
                 <sui-modal-content>
                     <sui-modal-description>
-                        <sui-header>Restore a thread from the archive</sui-header>
+                        <sui-header></sui-header>
                         <sui-list divided style="height:500px;overflow-x:none;overflow-y:scroll">
                             <sui-list-item 
-                                v-for="thread in global.archive">
-                                <sui-list-content>
-                                    <span v-text="moment(thread.timeStarted).format('MM/DD/YYYY HH:MM')" />
+                                v-for="thread in global.archive"
+                                style="margin-top:5px">
+                                <sui-list-content style="padding-right:10px">
+                                    <h4 v-text="thread.user.name" />
+                                    <span class="grey" v-text="moment(thread.timeStarted).fromNow()" />
+                                    <span class="grey">, {{thread.messages.length}} messages</span>
                                     <sui-button
+                                        class="pull-right"
+                                        icon="trash"
+                                        color="red"
+                                        @click="deleteThreadFromArchive(thread)" />
+                                    <sui-button
+                                        class="pull-right"
                                         content="Restore"
-                                        color="green"
+                                        color="grey"
                                         @click="restoreThread(thread)" />
                                 </sui-list-content>
                             </sui-list-item>
@@ -264,7 +269,7 @@ const moment = require('moment');
 let shared = require('../globalState');
 const TIME_SINCE_SENT_REFRESH_RATE = 15*1000;//ms
 const MESSAGE_AVATAR_SIZE = '35';//px
-const THREAD_AVATAR_SIZE = '55';
+const THREAD_AVATAR_SIZE = '50';
 
 module.exports = {
     data: () => ({ 
@@ -300,13 +305,9 @@ module.exports = {
         for(let i=0; i<t.length; i++){
             await updateAvatars(t[i]);
         }
-        this.selectedThread = shared.state.selectedThread;
+        //this.selectedThread = shared.state.selectedThread;
         this.threadArchive = shared.state.archive;
         this.threads = t;
-        console.log('archive:');
-        console.log(this.threadArchive);
-        console.log('threads : ');
-        console.log(this.threads);
     },
     sockets: {
         connect: function () {
@@ -350,20 +351,13 @@ module.exports = {
                 this.configAvatarURL(thread.operator, THREAD_AVATAR_SIZE);
             }
             this.saveThreads();
+        },
+        threadRemove: function (threadId) {
+            let thread = this.threads.find(t => t.threadId == threadId);
+            this.threads.splice(this.threads.indexOf(thread), 1);
         }
     },
     methods: {
-        messageWidthRules: function(message){
-            return {
-                'six wide':(message.text.length<=30),
-                'seven wide':(message.text.length>=30),
-                'eight wide':(message.text.length>=40),
-                'nine wide':(message.text.length>=50),
-                'ten wide':(message.text.length>=60),
-                'eleven wide':(message.text.length>=70),
-                'twelve wide':(message.actions||message.text.length>=80)
-            };                                                
-        },
         select: function(thread) {
             this.selectedThread = thread;
             shared.state.selectedThread = thread;
@@ -489,6 +483,14 @@ module.exports = {
                 TIME_SINCE_SENT_REFRESH_RATE
             );
         },
+        deleteThreadFromArchive: function(thread){
+            this.threadArchive = this.threadArchive.filter(t => t.threadId!=thread.threadId);
+            this.saveArchive();
+        },
+        getSegmentColor: function(user){
+            const FL = user.name.split(' ')[0].charAt(0).toUpperCase() + user.name.split(' ')[1].charAt(0).toUpperCase(); 
+            return `border-top:2px solid ${util.getThemeColorFromHash(FL)}!important`
+        }
     },
 }       
 </script>
@@ -562,5 +564,28 @@ module.exports = {
 
 .margintop {
     margin-top:10px;
+}
+
+.threadListPlaceholder {
+    text-align:center;
+    background-color:#eee;
+    height:100%;
+}
+
+.shadow{
+    -webkit-box-shadow: 0px 18px 99px -16px rgba(0,0,0,0.75);
+    -moz-box-shadow: 0px 18px 99px -16px rgba(0,0,0,0.75);
+    box-shadow: 0px 18px 99px -16px rgba(0,0,0,0.75);
+}
+.autoWidth{
+    width:auto !important;
+    word-wrap:break-word;
+    whitespace:nowrap;
+}
+.tall{
+    height:612px !important;
+}
+.short{
+    height:587px !important;
 }
 </style>

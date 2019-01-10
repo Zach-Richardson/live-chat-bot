@@ -24,12 +24,18 @@ a:hover{
     margin-left:12px;
     cursor:pointer;
 }
-
+.navbar{
+    z-index: 1 !important;
+    overflow: visible;
+    position: fixed; /* Set the navbar to fixed position */
+    top: 0; /* Position the navbar at the top of the page */
+    width: 100%; /* Full width */
+}
 </style>
 
 <template>
-    <div>
-     <div class="ui inverted menu" style="z-index: 1;">
+    <div class="navbar">
+     <div class="ui inverted menu" style="">
         <div class="ui container">
             <img class="logo" 
                 src="/static/images/forsta-logo-invert.svg" 
@@ -45,9 +51,9 @@ a:hover{
             </span>
             <div 
                 class="header item float right" 
-                style="padding:0px;"
+                style="padding:0px"
                 v-if="global.apiToken">
-                <div class="ui simple dropdown item" style="padding:3px">
+                <div class="ui simple dropdown item" style="padding:3px;">
                     <h5 style="margin:10px 5px 10px 5px;vertical-align:bottom" v-text="global.ourName"/>
                     <object v-if="avatarURL" style="cursor:pointer" type="image/svg+xml" :data="avatarURL" />
                     <div class="menu left">
