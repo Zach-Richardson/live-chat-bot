@@ -36,22 +36,22 @@ class APIHandler {
                     res.status(401).send({ message: 'forbidden' });
                 } else {
                     relay.storage.get('authentication', 'jwtsecret')
-                        .then((secret) => {
-                            try {
-                                const jwtInfo = jwt.verify(parts[1], secret);
-                                fn.call(this, req, res, next, jwtInfo.userId).catch(e => {
-                                    console.error('Async Route Error:', e);
-                                    next();
-                                });
-                            } catch (err) {
-                                console.log('bad authentication for this bot server request', err);
-                                res.status(401).send({ message: 'forbidden' });
-                            }
-                        })
-                        .catch(err => {
-                            console.log('storage error while checking authentication for this bot server request', err);
+                    .then((secret) => {
+                        try {
+                            const jwtInfo = jwt.verify(parts[1], secret);
+                            fn.call(this, req, res, next, jwtInfo.userId).catch(e => {
+                                console.error('Async Route Error:', e);
+                                next();
+                            });
+                        } catch (err) {
+                            console.log('bad authentication for this bot server request', err);
                             res.status(401).send({ message: 'forbidden' });
-                        });
+                        }
+                    })
+                    .catch(err => {
+                        console.log('storage error while checking authentication for this bot server request', err);
+                        res.status(401).send({ message: 'forbidden' });
+                    });
                 }
             } else {
                 fn.call(this, req, res, next).catch(e => {

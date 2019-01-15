@@ -22,6 +22,7 @@ div.listgap {
     padding-top:5%;
     border:1px solid #ddd;
     border-radius:5px;
+    box-shadow: 0px 2px 52px -16px rgba(0,0,0,0.75);
 }
 .groupUserList{
     border-radius:2px;
@@ -127,7 +128,7 @@ div.listgap {
 </template>
 
 <script>
-const util = require('../util');
+/* global (in root.vue): shared, util, focus, moment */
 const REFRESH_POLL_RATE = 15000;
 
 module.exports = {
@@ -163,10 +164,6 @@ module.exports = {
             if(group.name == 'All'){
                 return;
             }
-            let defaultGroup = this.groups.find(group => group.name=='All');
-            group.users.forEach(user => {
-                defaultGroup.users.push(user);
-            });
             this.groups.splice(this.groups.indexOf(group), 1);
             this.saveGroupData();
         },
@@ -183,6 +180,7 @@ module.exports = {
         createNewGroup: function() {
             this.groups.push({name: this.newGroupName, users: []});
             this.saveGroupData();
+            this.newGroupName = ''; 
             this.showingNewGroupModal = false;
         },
         saveGroupData: function() {

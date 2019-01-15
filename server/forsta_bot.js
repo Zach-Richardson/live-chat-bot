@@ -44,13 +44,13 @@ class ForstaBot {
             this.sockets[userId] = socket;
         }).bind(this);
         let connectOperator = (async function (operatorId, threadId, timeConnected){
+            try {
             let operatorUser = (await this.getUsers([operatorId]))[0];
             let ephemeralUser = (await this.getUsers([this.threadStatus[threadId].user.id]))[0];
             this.threadStatus[threadId].operator = {
                 name: this.fqName(operatorUser),
                 id: operatorUser.id,
                 gravatarHash: operatorUser.gravatar_hash,
-                avatarURL: ''
             };
             this.threadStatus[threadId].onHold = false;
             this.threadStatus[threadId].timeConnected = timeConnected;
@@ -67,12 +67,10 @@ class ForstaBot {
                 message: {
                     text: `You are now connected with ${this.fqName(ephemeralUser)}!`,
                     time: (new Date()).toUTCString(),
-                    timeSinceSent: '',
                     sender: {
                         name: this.fqName(ephemeralUser),
                         id: ephemeralUser.id,
                         gravatarHash: ephemeralUser.gravatar_hash,
-                        avatarURL: ''
                     },
                 }
             });
@@ -81,6 +79,21 @@ class ForstaBot {
                     this.sockets[user.id].emit('removeThread', threadId);
                 }
             });
+        }catch(err){
+            this.sockets[operatorId].emit('message', 
+            {
+                threadId: threadId,
+                message: {
+                    text: `Error Connecting: ${err}`,
+                    time: (new Date()).toUTCString(),
+                    sender: {
+                        name: 'Error Connecting',
+                        id: 'error',
+                        gravatarHash: 'error',
+                    },
+                }
+            });
+        }
             
         }).bind(this);
         let sendMessage = (async function (threadId, text){
@@ -135,11 +148,8 @@ class ForstaBot {
             threadId: msg.threadId,
             dist,
             timeStarted: (new Date()).toUTCString(),
-            timeSinceStarted: '',
             timeConnected: null,
-            timeSinceConnected: '',
             timeEnded: null,
-            timeSinceEnded: '',
             questions,
             currentQuestion: questions[0],
             messageHistory: [],
@@ -151,13 +161,11 @@ class ForstaBot {
                 name: this.fqName(botUser),
                 id: botUser.id,
                 gravatarHash: botUser.gravatar_hash,
-                avatarURL: ''
             },
             user: {
                 name: this.fqName(ephUser),
                 id: ephUser.id,
                 gravatarHash: ephUser.gravatar_hash,
-                avatarURL: ''
             }
         };
         this.sendQuestion(dist, msg.threadId, questions[0]);
@@ -193,12 +201,10 @@ class ForstaBot {
                 message: {
                     text: msg.data.body[0].value,
                     time: (new Date()).toUTCString(),
-                    timeSinceSent: '',
                     sender: {
                         name: this.fqName(sender),
                         id: msg.sender.userId,
                         gravatarHash: sender.gravatar_hash,
-                        avatarURL: ''
                     },
                 }
             });
@@ -253,7 +259,6 @@ class ForstaBot {
         let formattedMessage = {
             text,
             time: (new Date()).toUTCString(),
-            timeSinceSent: '',
             sender: {
                 name: this.fqName(sender),
                 id: sender.id,
@@ -405,6 +410,8 @@ class ForstaBot {
         if (resolved.userids.length === 1 && resolved.warnings.length === 0) {
             const uid = resolved.userids[0];
             const adminIds = await relay.storage.get('authentication', 'adminIds');
+            console.log('adminIds : ');
+            console.log(adminIds);
             if (!adminIds.includes(uid)) {
                 throw { statusCode: 403, info: { tag: ['not an authorized user'] } }; 
             }

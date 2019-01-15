@@ -49,10 +49,7 @@
 </template>
 
 <script>
-util = require('../util');
-shared = require('../globalState');
-focus = require('vue-focus');
-
+/* global (in root.vue): shared, util, focus, moment */
 module.exports = {
     data: () => ({
         secret: '',
@@ -91,7 +88,8 @@ module.exports = {
             var type = this.type;
             var otp = this.otp;
             this.loading = true;
-            util.fetch.call(this, '/api/onboard/atlasauth/complete/v1/' + tag, { method: 'post', body: { value, type, otp }})
+            const op = { method: 'post', body: { value, type, otp }};
+            util.fetch.call(this, '/api/onboard/atlasauth/complete/v1/' + tag, op)
             .then(result => {
                 this.loading = false;
                 if (result.ok) {

@@ -98,6 +98,7 @@ a:hover{
 </template>
  
 <script>
+/* global (in root.vue): shared, util, focus, moment */
 'use strict'
 module.exports = {
     mounted: function() {

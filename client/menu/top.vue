@@ -72,7 +72,7 @@ a:hover{
         </div>
     </div>
         <div>
-            <sui-modal v-model="showingSignOutModal">
+            <sui-modal v-model="showingSignOutModal" size="tiny">
                 <sui-modal-header>Sign Out</sui-modal-header>
                 <sui-modal-content>
                     <sui-modal-description>
@@ -98,8 +98,7 @@ a:hover{
 </template>
 
 <script>
-shared = require('../globalState');
-
+/* global (in root.vue): shared, util, focus, moment */
 module.exports = {
     data: () => ({ 
         global: shared.state,
@@ -120,8 +119,12 @@ module.exports = {
         },
     },
     mounted: async function() {
+        console.log('mounting top . . .  . ..  . . . . . . .  .');
         if(global.avatarURL){
             this.avatarURL = global.avatarURL;
+            return;
+        }
+        if(!this.global.apiToken){
             return;
         }
         const op = {type:'get', headers: {userId: this.global.userId} };

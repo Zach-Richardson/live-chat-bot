@@ -36,8 +36,7 @@
 </template>
 
 <script>
-const util = require('../util');
-shared = require('../globalState');
+/* global (in root.vue): shared, util, focus, moment */
 
 module.exports = {
     data: () => ({ 

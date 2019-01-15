@@ -6,8 +6,13 @@
 </template>
 
 <script>
+//global libraries
 shared = require('./globalState');
 util = require('./util');
+focus = require('vue-focus');
+moment = require('moment');
+//
+
 topMenu = require('./menu/top.vue');
 
 module.exports = {
@@ -48,6 +53,8 @@ module.exports = {
         }
     },
     mounted: function() {
+        console.log(global.onboardStatus);
+        console.log(global.apiToken);
         this.authenticateUser();
     }
 }

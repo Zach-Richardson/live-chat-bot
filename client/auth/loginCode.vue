@@ -40,10 +40,7 @@
 </template>
 
 <script>
-util = require('../util');
-shared = require('../globalState');
-focus = require('vue-focus');
-
+/* global (in root.vue): shared, util, focus, moment */
 function setup() {
     if (!this.global.userId) {
         this.$router.push({ name: 'loginTag', query: this.$route.query });

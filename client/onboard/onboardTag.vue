@@ -47,10 +47,7 @@
 </template>
 
 <script>
-util = require('../util');
-focus = require('vue-focus');
-shared = require('../globalState');
-
+/* global (in root.vue): shared, util, focus, moment */
 function setup() {
     util.fetch.call(this, '/api/onboard/status/v1')
     .then(result => { 

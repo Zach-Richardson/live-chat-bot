@@ -39,10 +39,8 @@
 </template>
 
 <script>
-util = require('../util');
-focus = require('vue-focus');
-shared = require('../globalState');
-jwtDecode = require('jwt-decode');
+/* global (in root.vue): shared, util, focus, moment */
+const jwtDecode = require('jwt-decode');
 
 function setup() {
     const apiToken = this.global.apiToken;
@@ -94,8 +92,6 @@ function requestAuth() {
         this.loading = false;
         if (result.ok) {
             const userId = result.theJson.id;
-            console.log('/api/auth/login/v1 result.theJson.id : ');
-            console.log(result.theJson.id);
             this.global.userId = userId;
             this.global.loginTag = tag;
             this.$router.push({ name: 'loginCode', query: this.$route.query });

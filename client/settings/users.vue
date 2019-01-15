@@ -21,7 +21,8 @@ div.listgap {
     margin:10px 0px 10px 0px !important;
     padding-top:5%;
     border:1px solid #ddd;
-    border-radius:5px
+    border-radius:5px;
+    box-shadow: 0px 2px 52px -16px rgba(0,0,0,0.75);
 }
 </style>
 
@@ -71,7 +72,7 @@ div.listgap {
 
         <!-- New User Modal -->
         <div>
-            <sui-modal v-model="showingNewUserModal" size="tiny">
+            <sui-modal v-model="showingNewUserModal" size="tiny" >
                 <sui-modal-header style="text-align:center">Add User</sui-modal-header>
                 <sui-modal-content style="text-align:center">
                     <sui-modal-description>
@@ -79,18 +80,21 @@ div.listgap {
                         <span class="flexbox ui left icon input">
                             <sui-icon
                                 name="at" />
-                            <input 
+                            <input
                                 @keyup.enter="searchUser()"
                                 v-model="newUserTag"
                                 type="text" 
                                 placeholder="Enter a user tag..." />
                         </span>
-                        <div v-if="tagMessage" class="ui small message">{{tagMessage}}</div>
+                        <div v-if="tagMessage" class="ui small message red">{{tagMessage}}</div>
                         <!-- /Search Input -->
                         <!-- New User Info -->
-                        <div class="ui card" v-if="newUser">
+                        <div class="ui card" style="margin-left:88px" v-if="newUser">
                             <div class="image">
-                                <object type="image/svg+xml" v-if="newUserAvatarURL" :data="newUserAvatarURL" />
+                                <object 
+                                    type="image/svg+xml" 
+                                    v-if="avatarURLs[`${newUser.id}50`]" 
+                                    :data="avatarURLs[`${newUser.id}50`]" />
                             </div>
                             <div class="content">
                                 <a class="header">{{newUser.first_name}} {{newUser.last_name}}</a>
@@ -102,14 +106,14 @@ div.listgap {
                         <!-- /New User Info -->
                         <sui-button
                             v-if="newUser" 
-                            class="grey" 
+                            class="green" 
                             @click="addUser()"
-                            content="Add" />
+                            content="Add User" />
                     </sui-modal-description>
                 </sui-modal-content>
                 <sui-modal-actions style="padding:10px;text-align:center">
                     <sui-button 
-                        class="green" 
+                        class="grey" 
                         @click="showingNewUserModal=false"
                         content="Close" />
                 </sui-modal-actions>
@@ -120,8 +124,7 @@ div.listgap {
 </template>
 
 <script>
-const util = require('../util');
-const moment = require('moment');
+/* global (in root.vue): shared, util, focus, moment */
 const REFRESH_POLL_RATE = 15000;
 
 module.exports = {
@@ -163,7 +166,6 @@ module.exports = {
             util.fetch.call(this, '/api/auth/admins/v1', options)
             .then(res => {
                 if(res.ok){
-                    this.admins = res.theJson;
                     this.tagMessage = '';
                 }else{
                     this.tagMessage = util.mergeErrors(res.theJson);
@@ -188,19 +190,21 @@ module.exports = {
             util.fetch.call(this, 'api/settings/user', op)
             .then(res => {
                 if(res.ok){
+                    this.tagMessage = null;
                     this.newUser = res.theJson;
                     this.configAvatarURL(res.theJson, '50');
                 }else{
+                    this.newUser = null;
                     this.tagMessage = 'User not found.';
                 }
             });
         },
         addUser: function() {
+            this.admins.push(this.newUser);
             let options = { method: 'post', body: { op: 'add', tag: this.newUserTag }};
             util.fetch.call(this, '/api/auth/admins/v1', options)
             .then((result) => {
                 if (result.ok) {
-                    this.admins = result.theJson.administrators;
                     for(let i=0;i<this.admins.length;i++){
                         this.configAvatarURL(this.admins[i],'50');
                     }

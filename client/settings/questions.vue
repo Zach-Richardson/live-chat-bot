@@ -22,6 +22,7 @@ div [class*="pull right"] {
     padding-top:5%;
     border:1px solid #ddd;
     border-radius:5px;
+    box-shadow: 0px 2px 52px -16px rgba(0,0,0,0.75);
 }
 </style>
  
@@ -243,6 +244,7 @@ div [class*="pull right"] {
 </template>
  
 <script>
+/* global (in root.vue): shared, util, focus, moment */
 'use strict'
 module.exports = {
     mounted: function() {
@@ -390,9 +392,10 @@ module.exports = {
             this.questionsOriginal = JSON.stringify(this.questions);
         },
         updateAction: function(response) {
-            response.actionOption = '';
             if(response.action === 'Forward to Question') {
                 response.actionOption = 'Question 1';
+            }else if(response.action == 'Forward to Group'){
+                response.actionOption = 'All';
             }
             this.checkForChanges();
         },
