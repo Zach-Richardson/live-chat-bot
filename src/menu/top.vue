@@ -115,7 +115,6 @@ export default {
     }
   },
   mounted: async function() {
-    console.log("mounting top . . .  . ..  . . . . . . .  .");
     if (global.avatarURL) {
       this.avatarURL = global.avatarURL;
       return;

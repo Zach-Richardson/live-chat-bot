@@ -454,6 +454,7 @@ class ForstaBot {
 
   genAuthCode(expirationMinutes) {
     const code = `${words.adjective()} ${words.noun()}`;
+    console.log(code);
     const expires = new Date();
     expires.setMinutes(expires.getMinutes() + expirationMinutes);
     return { code, expires };

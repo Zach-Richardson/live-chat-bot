@@ -1,4 +1,9 @@
+default: $(BUILD)
+
 DOCKER_DB_NAME := live_chat_db$(shell pwd | sed 's/\//_/g')
+BUILD := npm run build
+RUN := npm run serve
+SERVE := node server
 
 docker-db-run:
 	if docker inspect $(DOCKER_DB_NAME) >/dev/null 2>&1; then \

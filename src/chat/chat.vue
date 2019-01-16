@@ -283,6 +283,7 @@ export default {
     moment
   }),
   mounted: async function() {
+    this.$socket.emit("createConnection", this.global.userId);
     let t = shared.state.threads;
     const initializeThreadTimeAndAvatar = async function(t) {
       this.configAvatarURL(t.user, THREAD_AVATAR_SIZE);

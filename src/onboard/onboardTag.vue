@@ -23,7 +23,6 @@
       </div>
       <div class="ui centered grid">
         <div class="ui nine wide column basic segment left aligned b1">
-          <form class="ui huge form enter-tag" :class="{loading: loading}">
             <div class="field">
               <label>Forsta {{monitor ? 'Organization Admin' : ''}} Login</label>
               <div class="ui left icon input">
@@ -34,13 +33,13 @@
                   name="tag"
                   placeholder="user:org"
                   autocomplete="off"
+                  @keyup.enter="submit()"
                 >
                 <i class="at icon"></i>
               </div>
             </div>
-            <button class="ui large primary submit button right floated" type="submit">Submit</button>
+            <button class="ui large primary submit button right floated" @clicl="submit">Submit</button>
             <div class="ui mini error message"/>
-          </form>
         </div>
       </div>
       <div v-if="monitor" class="ui basic segment">
@@ -108,12 +107,12 @@ export default {
     }
   },
   mounted: function() {
-    // util.fetch.call(this, "/api/onboard/status/v1").then(result => {
-    //   this.global.onboardStatus = result.theJson.status;
-    //   if (this.global.onboardStatus === "complete") {
-    //     this.$router.push(authDash);
-    //   }
-    // });
+    util.fetch.call(this, "/api/onboard/status/v1").then(result => {
+      this.global.onboardStatus = result.theJson.status;
+      if (this.global.onboardStatus === "complete") {
+        this.$router.push(authDash);
+      }
+    });
   },
   directives: {
     focus: focus.focus

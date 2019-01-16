@@ -7,22 +7,25 @@ Install Requirements
  * Node 8
    
 
-1. Installation
+Installation
 --------
 git clone https://github.com/ForstaLabs/live-chat-bot.git
 npm install
 
 
-2. Build
---------
+1. Build
+` ` `
 npm run build
+` ` `
 
-3. Run
---------
+2. Run
+` ` `
 export RELAY_STORAGE_BACKING=postgres
 export USER=postgres
+export NODE_ENV=[dev|prod]
 sudo make docker-db-run
 node server
+` ` `
 
 
 About

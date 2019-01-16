@@ -24,7 +24,7 @@ class APIHandler {
   }
 
   asyncRoute(fn, requireAuth = true) {
-    if (process.env.API_AUTH_OVERRIDE === "insecure") requireAuth = false;
+    // if (process.env.API_AUTH_OVERRIDE === "insecure") requireAuth = false;
 
     /* Add error handling for async exceptions.  Otherwise the server just hangs
          * the request or subclasses have to do this by hand for each async routine. */

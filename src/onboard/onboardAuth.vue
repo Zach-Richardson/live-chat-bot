@@ -7,46 +7,35 @@
           Enter Forsta {{label}}
         </h1>
       </div>
-      <div class="ui centered grid">
-        <div class="ui nine wide column basic segment left aligned t0 b1">
-          <form
-            v-on:submit.prevent="completeAuth"
-            class="ui huge form enter-code"
-            :class="{loading: loading}"
-          >
-            <div class="field">
-              <label>Forsta {{label}}</label>
-              <div class="ui left icon input">
-                <input
-                  v-focus.lazy="true"
-                  :type="inputType"
-                  name="secret"
-                  :placeholder="placeholder"
-                  autocomplete="off"
-                  v-model="secret"
-                >
-                <i class="lock icon"></i> 
-              </div>
+      <sui-grid class="ui centered huge">
+        <sui-grid-row :class="{loading: loading}">
+          <sui-grid-column :width="9" style="text-align:center">
+            <div style="text-align:left">Forsta {{label}}</div>
+            <sui-input
+              v-focus.lazy="true"
+              style="width:100%"
+              placeholder="code words"
+              icon="lock"
+              iconPosition="left"
+              v-model="secret"
+              @keyup.enter="submit()"
+            />
+            <br>
+            <sui-message color="red" style="width:100%" v-if="userMessage" v-text="userMessage"/>
+            <div class="ui basic segment">
+              <p>Please check your Forsta app for the login codewords you were just sent.</p>
             </div>
-            <div class="field" v-if="type === 'totp'">
-              <label>Authentication Code</label>
-              <div class="ui left icon input">
-                <input
-                  type="number"
-                  name="otp"
-                  placeholder="authentication code"
-                  autocomplete="off"
-                  v-model="otp"
-                >
-                <i class="clock icon"></i>
-              </div>
-            </div>
-            <button class="ui large primary submit button right floated" type="submit">Submit</button>
+            <sui-button
+              size="large"
+              color="blue"
+              content="Submit"
+              @click="submit()"
+              style="margin-top:10px;"
+            />
             <router-link :to="{name: 'onboardTag'}" class="ui large button secret-cancel">Cancel</router-link>
-            <sui-message size="small" negative v-if="error" :content="error"/>
-          </form>
-        </div>
-      </div>
+          </sui-grid-column>
+        </sui-grid-row>
+      </sui-grid>
     </div>
   </div>
 </template>
