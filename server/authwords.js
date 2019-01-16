@@ -1,4 +1,3 @@
-
 const ADJECTIVES = `
 bare
 bent
@@ -206,15 +205,13 @@ zone
 `;
 
 const adjectives = ADJECTIVES.split(/\s+/).filter(x => !!x);
-console.log(`${adjectives.length} authentication adjectives`);
 const nouns = NOUNS.split(/\s+/).filter(x => !!x);
-console.log(`${nouns.length} authentication nouns`);
 
 function chooseFrom(list) {
-    return list[Math.floor(Math.random() * list.length)];
+  return list[Math.floor(Math.random() * list.length)];
 }
 
 module.exports = {
-    adjective: () => chooseFrom(adjectives),
-    noun: () => chooseFrom(nouns)
+  adjective: () => chooseFrom(adjectives),
+  noun: () => chooseFrom(nouns)
 };

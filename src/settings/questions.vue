@@ -1,0 +1,412 @@
+<style scoped lang="scss">
+div [class*="pull left"] {
+  float: left;
+  margin-left: 0.25em;
+}
+div [class*="pull right"] {
+  float: right;
+  margin-right: 0.25em;
+}
+.flexbox {
+  display: flex;
+  flex: 1;
+  margin-right: 0.5em;
+}
+.color-picker input[type="color"] {
+  height: 40px;
+  width: 70px;
+  vertical-align: middle;
+}
+.questionEditor {
+  margin: 20px 0px 20px 0px !important;
+  padding-top: 5%;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  box-shadow: 0px 2px 52px -16px rgba(0, 0, 0, 0.75);
+}
+</style>
+ 
+<template lang="html">
+    <div class="ui main text container left aligned">
+        <sui-grid
+            class="questionEditor"
+            v-for="question in questions">
+            <sui-grid-row 
+                :columns="1">
+                <sui-grid-column class="ui big">
+                    <h3 class="pull left" style="display:inline;vertical-align:middle">
+                        Question {{questions.indexOf(question)+1}}
+                    </h3>
+                    <sui-button
+                        class="pull right"
+                        color="red"
+                        icon="trash"
+                        @click="deleteQuestion(question)" />
+                    <sui-button
+                        class="pull right"
+                        color="grey"
+                        icon="arrow down"
+                        @click="moveQuestionDown(question)" />
+                    <sui-button
+                        class="pull right"
+                        color="grey"
+                        icon="arrow up"
+                        @click="moveQuestionUp(question)" />
+                </sui-grid-column>
+            </sui-grid-row>
+
+            <sui-grid-row style="padding:0px">
+                <sui-grid-column>
+                    <sui-input
+                        v-model="question.prompt"
+                        :value="question.prompt"
+                        style="width:100% !important"
+                        class="large"
+                        @input="checkForChanges()"/>
+                    <br />
+                    <sui-dropdown
+                        selection
+                        placeholder="Question Type"
+                        :options="questionTypes"
+                        @input="checkForChanges()"
+                        class="large"
+                        style="margin-top:10px"
+                        v-model="question.type" />
+                </sui-grid-column>
+            </sui-grid-row>
+            <sui-divider />
+            <sui-grid-row v-if="question.type=='Multiple Choice'">
+                <sui-grid-column>
+                    <form class="ui form" v-for="response in question.responses">
+                        <div
+                            v-if="question.responses.indexOf(response)!=0" 
+                            style="margin-top:20px">
+                        </div>
+                        <div class="field" 
+                            style="padding:9px;border-radius:5px" 
+                            :style="getResponseColorForBackground(response)">
+                            <label>
+                                Response {{question.responses.indexOf(response)+1}}
+                            </label>
+                            <sui-grid>
+                                <sui-grid-row :columns="1">
+                                    <sui-grid-column>
+                                        <sui-input
+                                            class="flexbox"
+                                            v-model="response.text"
+                                            :value="response.text"
+                                            @input="checkForChanges()"/>
+                                    </sui-grid-column>
+                                </sui-grid-row>
+                                <sui-grid-row style="padding-top:5px">
+                                    <sui-grid-column>
+                                        <sui-dropdown      
+                                            selection
+                                            :options="questionActions"
+                                            v-model="response.action"
+                                            @input="updateAction(response)"/>
+                                        <sui-icon
+                                            color="grey"
+                                            name="arrow right"
+                                            size="large" />
+                                        <span v-if="response.action==='Forward to Question'">
+                                            <sui-dropdown   
+                                                selection
+                                                placeholder="Question"
+                                                :options="questionsForDropdown"
+                                                v-model="response.actionOption"
+                                                @input="checkForChanges()"/>
+                                        </span>
+                                        <span v-if="response.action==='Forward to Group'">
+                                            <sui-dropdown   
+                                                selection
+                                                placeholder="Group"
+                                                :options="groupsForDropdown"
+                                                v-model="response.actionOption"
+                                                @input="checkForChanges()"/>
+                                        </span>                                
+                                        <sui-button
+                                            style="width:50px;margin-left:10px"
+                                            :value="response.color"
+                                            v-model="response.color"
+                                            @input="checkForChanges()"/>  
+                                        <p v-if="response.invalidTag" style="color: #ff0000;">
+                                            The group "{{response.actionOption}}" does not exist.
+                                        </p>
+                                        <sui-button
+                                            type="button"
+                                            color="grey"
+                                            icon="trash"
+                                            class="pull right"
+                                            style="position:relative"
+                                            @click="deleteResponse(question, response)" />
+                                    </sui-grid-column>
+                                </sui-grid-row>
+                            </sui-grid>
+                        </div>
+                    </form>
+                <span style="text-align:center">
+                    <sui-button
+                        style="margin-top:25px;"
+                        color="grey"
+                        size="small"
+                        content="Add Response"
+                        @click="newResponse(question)"
+                        v-if="question.type==='Multiple Choice'"/>
+                </span>
+                </sui-grid-column>
+            </sui-grid-row>
+            
+            <sui-grid-row
+                class="left aligned"
+                v-if="question.type==='Free Response'">
+                <sui-grid-column>
+                    <sui-list divided relaxed>
+                        <sui-list-item>
+                            <sui-list-content style="color:#777">                          
+                                <sui-dropdown      
+                                    selection
+                                    :options="questionActions"
+                                    v-model="question.responses[0].action"
+                                    @input="updateAction(question.responses[0])"/>
+                                <sui-icon
+                                    name="arrow right"
+                                    size="large" />
+                                <span v-if="question.responses[0].action==='Forward to Question'">
+                                    <sui-dropdown   
+                                        selection
+                                        placeholder="Question"
+                                        :options="questionsForDropdown"
+                                        v-model="question.responses[0].actionOption"
+                                        @input="checkForChanges()"/>
+                                </span>
+                                <span v-if="question.responses[0].action==='Forward to Group'">
+                                    <sui-dropdown   
+                                        selection
+                                        placeholder="Group"
+                                        :options="groupsForDropdown"
+                                        v-model="question.responses[0].actionOption"
+                                        @input="checkForChanges()"/>
+                                </span>
+                            </sui-list-content>
+                        </sui-list-item>
+                    </sui-list>
+                </sui-grid-column>
+            </sui-grid-row>
+        </sui-grid>
+
+        <div style="margin-bottom:100px">
+            <sui-divider />
+            <sui-button
+                class="ui large green button pull left"
+                content="New Question"
+                @click="newQuestion()" />
+
+            <sui-button
+                class="ui large blue button pull right"
+                content="Save Changes" 
+                @click="saveData()"
+                v-if="changesMade" />
+        </div>
+
+        <div>
+            <sui-modal v-model="showingSaveChangesModal">
+                <sui-modal-header>Save Changes</sui-modal-header>
+                <sui-modal-content>
+                    <sui-modal-description>
+                        <sui-header>Continue without saving changes?</sui-header>
+                        <p>Your changes have not been saved.</p>
+                    </sui-modal-description>
+                </sui-modal-content>
+                <sui-modal-actions style="padding:10px">
+                    <sui-button 
+                        class="yellow" 
+                        floated="left"
+                        @click="showingSaveChangesModal = false"
+                        content="Cancel" />
+                    <sui-button 
+                        class="red"
+                        @click="nextRoute()"
+                        content="Don't Save & Continue" />
+                    <sui-button 
+                        floated="right" 
+                        class="green" 
+                        @click="saveAndContinue()"
+                        content="Save & Continue" />
+                </sui-modal-actions>
+            </sui-modal>
+        </div>
+
+    </div>
+</template>
+ 
+<script>
+import shared from "../globalState";
+import util from "../util";
+("use strict");
+export default {
+  mounted: function() {
+    this.loadData();
+  },
+  data: function() {
+    return {
+      global: shared.state,
+      changesMade: false,
+      questions: [],
+      questionsOriginal: [],
+      questionsForDropdown: [],
+      showingSaveChangesModal: false,
+      nextRoute: null,
+      userGroups: [],
+      groupsForDropdown: [],
+      questionActions: [
+        {
+          text: "Forward to Question",
+          value: "Forward to Question"
+        },
+        {
+          text: "Forward to Group",
+          value: "Forward to Group"
+        }
+      ],
+      questionTypes: [
+        {
+          text: "Free Response",
+          value: "Free Response"
+        },
+        {
+          text: "Multiple Choice",
+          value: "Multiple Choice"
+        }
+      ]
+    };
+  },
+  methods: {
+    getResponseColorForBackground: function(response) {
+      return { "background-color": response.color };
+    },
+    checkForChanges: function() {
+      if (this.changesMade) return;
+      if (JSON.stringify(this.questions) !== this.questionsOriginal) {
+        this.changesMade = true;
+      }
+    },
+    deleteResponse: function(question, response) {
+      question.responses.splice(question.responses.indexOf(response), 1);
+      this.changesMade = true;
+    },
+    deleteQuestion: function(question) {
+      this.questions.splice(this.questions.indexOf(question), 1);
+      this.questionsForDropdown.splice(this.questions.indexOf(question), 1);
+      this.changesMade = true;
+    },
+    loadData: function() {
+      util.fetch
+        .call(this, "/api/settings/questions/", { method: "get" })
+        .then(result => {
+          this.questionsOriginal = JSON.stringify(result.theJson);
+          this.questions = result.theJson;
+          this.questionsForDropdown = [];
+          for (let i = 0; i < this.questions.length; i++) {
+            this.questionsForDropdown.push({
+              text: `Question ${i + 1}`,
+              value: `Question ${i + 1}`
+            });
+          }
+        });
+
+      util.fetch
+        .call(this, "/api/settings/groups/", { method: "get" })
+        .then(result => {
+          result.theJson.forEach(group => {
+            this.groupsForDropdown.push({
+              text: group.name,
+              value: group.name
+            });
+          });
+        });
+    },
+    moveQuestionDown: function(question) {
+      const i = this.questions.indexOf(question);
+      if (i >= this.questions.length - 1) return;
+      const temp = this.questions[i + 1];
+      this.questions.splice(i + 1, 1, question);
+      this.questions.splice(i, 1, temp);
+      this.checkForChanges();
+    },
+    moveQuestionUp: function(question) {
+      const i = this.questions.indexOf(question);
+      if (i <= 0) return;
+      const temp = this.questions[i - 1];
+      this.questions.splice(i - 1, 1, question);
+      this.questions.splice(i, 1, temp);
+      this.checkForChanges();
+    },
+    newQuestion: function() {
+      this.questions.push({
+        prompt: "Question Prompt",
+        type: "Multiple Choice",
+        responses: [
+          {
+            text: "Yes",
+            action: "Forward to Question",
+            actionOption: "Question 1",
+            tagId: null,
+            color: "#B9D3EE"
+          },
+          {
+            text: "No",
+            action: "Forward to Question",
+            actionOption: "Question 1",
+            tagId: null,
+            color: "#F08080"
+          }
+        ]
+      });
+      this.questionsForDropdown.push({
+        text: `Question ${this.questions.length}`,
+        value: `Question ${this.questions.length}`
+      });
+      this.changesMade = true;
+    },
+    newResponse: function(question) {
+      question.responses.push({
+        text: "New Response",
+        action: "Forward to Question",
+        actionOption: `Question ${this.questions.indexOf(question) + 1}`,
+        color: "#A6CA80"
+      });
+      this.changesMade = true;
+    },
+    saveAndContinue: function() {
+      this.saveData();
+      this.nextRoute();
+    },
+    saveData: function() {
+      util.fetch("/api/settings/questions/", {
+        method: "post",
+        body: { questions: this.questions }
+      });
+      this.changesMade = false;
+      this.questionsOriginal = JSON.stringify(this.questions);
+    },
+    updateAction: function(response) {
+      if (response.action === "Forward to Question") {
+        response.actionOption = "Question 1";
+      } else if (response.action == "Forward to Group") {
+        response.actionOption = "All";
+      }
+      this.checkForChanges();
+    }
+  },
+  beforeRouteLeave: function(to, from, next) {
+    if (this.changesMade) {
+      this.showingSaveChangesModal = true;
+      this.nextRoute = next;
+      next(false);
+    } else {
+      next();
+    }
+  }
+};
+</script>
