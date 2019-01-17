@@ -7,10 +7,11 @@ if [[
     "${NODE_ENV}" == "production"  
   ) ]]; then 
   printf "Error: Environment variable NODE_ENV not configured properly!
-  NODE_ENV configures the run script and the node server. For more information check README.md.
+  NODE_ENV configures this script and the node server. For more information check README.md.
   Please set NODE_ENV to a valid value. Options: [development|production]\n\n"
   keepGoing=0
 fi
+
 if [[ -z "${USER}" || 
   ! ( 
     #valid values for USER
@@ -21,6 +22,7 @@ if [[ -z "${USER}" ||
   Please set USER to a valid value. Options: [postgres]\n\n"
   keepGoing=0
 fi
+
 if [[ -z "${RELAY_STORAGE_BACKING}" ||
   ! ( 
     #valid values for USER
@@ -60,15 +62,7 @@ function rmStaticDirs() {
   sudo rm -rfd dist semantic node_modules
 }
 
-if [[ "$1" == "clean" ]]; then
-  rmStaticDirs
-elif [[ "$1" == "docker-db-run" ]]; then
-  startDocker
-elif [[ "$1" == "docker-db-clean" ]]; then
-  resetDocker
-elif [[ "$1" == "server" ]]; then
-  node server
-elif [[ "$1" == "run" && "$2" != "ui" ]]; then
+function run() {
   if [[ "${NODE_ENV}" == "production" && ! -z "$1" ]]; then
     printf "Building for Production\n"
     startDocker& 2>/dev/null
@@ -79,12 +73,30 @@ elif [[ "$1" == "run" && "$2" != "ui" ]]; then
     startDocker& 2>/dev/null
     node server&
     npm run serve
-elif [[ "$1" == "run" && "$2" == "ui" ]]; then
+  fi
+}
+
+function runWithUI() {
   printf "Running Dev Server (Webpack HMR)\n"
   startDocker& 2>/dev/null
   node server&
   vue ui
+}
+
+if [[ "$1" == "clean" ]]; then
+  rmStaticDirs
+elif [[ "$1" == "docker-db-run" ]]; then
+  startDocker
+elif [[ "$1" == "docker-db-clean" ]]; then
+  resetDocker
+elif [[ "$1" == "server" ]]; then
+  node server
+elif [[ "$1" == "run" && "$2" != "ui" ]]; then
+  run
+elif [[ "$1" == "run" && "$2" == "ui" ]]; then
+  runWithUI
 else
   echo "command not recognized! available commands: clean, docker, run, run ui"
 fi
+
 trap 'killall node' SIGINT
