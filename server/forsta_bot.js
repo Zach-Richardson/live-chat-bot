@@ -479,8 +479,6 @@ class ForstaBot {
     if (resolved.userids.length === 1 && resolved.warnings.length === 0) {
       const uid = resolved.userids[0];
       const adminIds = await relay.storage.get("authentication", "adminIds");
-      console.log("adminIds : ");
-      console.log(adminIds);
       if (!adminIds.includes(uid)) {
         throw { statusCode: 403, info: { tag: ["not an authorized user"] } };
       }

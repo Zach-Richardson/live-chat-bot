@@ -28,7 +28,7 @@ class WebServer {
       "/api/settings/",
       new api.SettingsAPIV1({ server: this }).router
     );
-    if (process.env.NODE_ENV == "prod") {
+    if (process.env.NODE_ENV == "production") {
       console.log("production mode detected, serving from live-chat-bot/dist");
       this.app.use("/fonts/*", (req, res) => {
         res.sendFile(req.baseUrl, { root });

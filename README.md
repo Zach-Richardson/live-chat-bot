@@ -3,38 +3,49 @@ Forsta Live Chat Bot
 
 Install Requirements
 --------
+ * Bash
  * Docker
  * Node 8
    
 
-Installation
---------
+1. Install
+` ` `
 git clone https://github.com/ForstaLabs/live-chat-bot.git
 npm install
-
-
-1. Build
-` ` `
-npm run build
+#Semantic will now prompt you now with some configuration options.
+#Respond with the default for each option (just keep hitting enter).
 ` ` `
 
 2. Run
 ` ` `
+#It's reccomended that you set these in your .profile or .bashrc config
 export RELAY_STORAGE_BACKING=postgres
 export USER=postgres
-export NODE_ENV=[dev|prod]
-sudo make docker-db-run
-node server
+export NODE_ENV=[development|production]
+./run.sh run
 ` ` `
 
+Usage
+--------
 
-About
--------
-This repository is built from a Forsta end-to-end-encrypted messaging bot template.
-The Forsta messaging-bot allows for for autonomous receipt, processing, storage, and/or 
-transmission of messaging data in conjunction with the Forsta web messenger and iPhone/Android apps.
-Please fork it or one of our several projects based off of it!
-[![NPM](https://img.shields.io/npm/v/forsta-messaging-bot.svg)](https://www.npmjs.com/package/forsta-messaging-bot)
+./run.sh commands:
+
+* run - runs the project in development of production mode based on NODE_ENV.
+    * If NODE_ENV = 'development' run the project using Vue-CLI's development configuration which uses 
+    webpack-dev-server's Hot Module Reloading (HMR) functionality. 
+    * If NODE_ENV = 'production' compile the project using Vue-CLI's production configuration which
+    also uses webpack
+
+* run ui - runs the project using Vue-CLI's browser-based GUI. If building for production, make sure
+    to set your NODE_ENV to 'production' prior to running this command.
+
+* server - start the node server which handles all bot-related communications and data.
+
+* clean - uninstalls the project completely. Removes all node modules, semantic, and the compiled site.
+
+* docker-db-run - runs the docker container which contains our postgres server.
+
+* docker-db-clean - purges the docker container and data in postgres database.
 
 
 The Why &mdash; Decentralized Data Security
@@ -69,25 +80,6 @@ another kind of messaging client, like the messaging clients running in users’
 browsers and on their phones. And just like the other messaging clients, Forsta 
 bots send and receive end-to-end encrypted messages to do their work **while 
 running in a context controlled by the user**.
-
-Usage
---------
-Once running, the default port and listening address are `0.0.0.0:4096`.  If
-you are running locally you can access the web interface by opening
-*http://localhost:4096*.
-
-You can change the listening address by setting `LISTEN_ADDR` to a valid host
-address for your server, E.g. something like `localhost` or `127.0.0.1` to only
-accept local connections.
-
-The default listening port can be changed by setting `PORT` to any valid
-numeric port, e.g. `8000`.
-
-Storage is managed through Forsta
-[librelay](https://github.com/ForstaLabs/librelay-node) which currently
-supports local filesystem and Redis.  For more information about setting
-up custom storage see: https://github.com/ForstaLabs/librelay-node#storage.
-
 
 License
 --------

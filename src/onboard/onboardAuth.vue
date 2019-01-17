@@ -51,7 +51,8 @@ export default {
     type: "",
     loading: false,
     error: "",
-    global: shared.state
+    global: shared.state,
+    userMessage: null
   }),
   computed: {
     placeholder: function() {

@@ -252,6 +252,7 @@ class AuthenticationAPIV1 extends APIHandler {
       return;
     }
     try {
+      console.log('requesting login cod e....')
       const id = await this.server.bot.sendAuthCode(tag);
       res.status(200).json({ id });
       return;

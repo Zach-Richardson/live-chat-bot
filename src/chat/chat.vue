@@ -10,7 +10,7 @@
                         <sui-label
                             color="grey"
                             size="large"
-                            style="margin-top:200px">0 Active Threads</sui-label>
+                            style="margin-top:200px">0 Th   reads </sui-label>
                     </sui-container>
                     <sui-list
                         v-else

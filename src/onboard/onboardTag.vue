@@ -38,7 +38,7 @@
                 <i class="at icon"></i>
               </div>
             </div>
-            <button class="ui large primary submit button right floated" @clicl="submit">Submit</button>
+            <button class="ui large primary submit button right floated" @click="submit()">Submit</button>
             <div class="ui mini error message"/>
         </div>
       </div>
@@ -77,7 +77,7 @@ export default {
   methods: {
     submit: function() {
       this.userMessage = null;
-      const tagRegex = /^([\da-z_]([.][\da-z_]|[\da-z_])*):([\da-z_]([.]+[\da-z_]|[\da-z_])*)$/;
+      const tagRegex = /[0-9a-z]+[.]{1}[0-9a-z]+[:]{1}[0-9a-z]+[.]{1}[0-9a-z]+/;
       if (tagRegex.test(this.tag)) {
         this.userMessage = "please enter full @your.name:your.org";
       }
